@@ -55,7 +55,7 @@ const Login = () => {
       try {
         const response = await axios.get('https://api.collectapi.com/health/dutyPharmacy?ilce=%C3%87ankaya&il=Ankara', {
           headers: {
-            'authorization': 'apikey 5OccvSmV57Yqxmb5nu4KQX:6cMOrdynKxGG3lkw99gWfs', 
+            'authorization': 'apikey ', 
             'content-type': 'application/json'
           }
         });
