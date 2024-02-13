@@ -1,104 +1,202 @@
-import { FontAwesome6, Ionicons } from '@expo/vector-icons'; 
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import BottomSheet from '@gorhom/bottom-sheet';
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet } from "react-native";
+import * as Location from "expo-location";
+import { Dropdown } from "react-native-element-dropdown";
+import axios from 'axios'; // Axios kütüphanesini import et
 
-import { PixelRatio } from 'react-native';
 
-const widthInDp = PixelRatio.getPixelSizeForLayoutSize(358);
-const heightInDp = PixelRatio.getPixelSizeForLayoutSize(57);
+const data = [
+  { label: "Item 1", value: "1" },
+  { label: "Item 2", value: "2" },
+  { label: "Item 3", value: "3" },
+  { label: "Item 4", value: "4" },
+  { label: "Item 5", value: "5" },
+  { label: "Item 6", value: "6" },
+  { label: "Item 7", value: "7" },
+  { label: "Item 8", value: "8" },
+];
 
-const YourComponent = () => {
-  const [pharmacies, setPharmacies] = useState([]);
+// const axios = require('axios');
+
+// // API endpoint URL
+// const url = 'https://api.collectapi.com/health/dutyPharmacy?ilce=%C3%87ankaya&il=Ankara';
+
+// // Başlık ayarları
+// const headers = {
+//   'authorization': 'apikey your_token',
+//   'content-type': 'application/json'
+// };
+
+// // Axios ile GET isteği gönderme
+// axios.get(url, { headers })
+//   .then(response => {
+//     // İstek başarılıysa, gelen veriyi işleme
+//     const cities = response.data.result.map(item => item.il);
+//     console.log('Şehirler:', cities);
+//   })
+//   .catch(error => {
+//     // İstek hata ile sonuçlanırsa, hatayı işleme
+//     console.error('Hata:', error.message);
+//   });
+
+const Login = () => {
+  const [location, setLocation] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [selectedCity, setSelectedCity] = useState(null);
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
+  const [isCityFocus, setIsCityFocus] = useState(false);
+  const [isDistrictFocus, setIsDistrictFocus] = useState(false);
+  const [cities, setCities] = useState([]);
+
 
   useEffect(() => {
-    fetchPharmacies();
+    const fetchCities = async () => {
+      try {
+        const response = await axios.get('https://api.collectapi.com/health/dutyPharmacy?ilce=%C3%87ankaya&il=Ankara', {
+          headers: {
+            'authorization': 'apikey ', 
+            'content-type': 'application/json'
+          }
+        });
+        const cityNames = response.data.result.map(item => item.name);
+        setCities(cityNames);
+      } catch (error) {
+        console.error('Hata:', error.message);
+      }
+    };
+    fetchCities(); 
   }, []);
 
-  const fetchPharmacies = async () => {
-    try {
-      const response = await fetch('https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation');
-      const data = await response.json();
-      if (data.isSuccess) {
-        setPharmacies(data.data);
-      } else {
-        console.error('API Error:', data.errorMessage);
-      }
-    } catch (error) {
-      console.error('Fetch Error:', error);
+  const renderLabel = () => {
+    if (value || isFocus) {
+      return <View style={[styles.label, isFocus && { color: "blue" }]}></View>;
     }
+    return null;
   };
 
-  const renderPharmacyItem = ({ item }) => (
-    <View style={{ paddingVertical: 30, paddingHorizontal:10, borderBottomWidth: 1, borderBottomColor: '#ccc', flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-      <View style={{ flexDirection: "column", width: 200 }}>
-        <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
-        <Text>{item.loc}</Text>
-      </View>
-      <View style={{ flexDirection: "row", justifyContent: "space-around", width: 90 }}>
-        <TouchableOpacity style={{backgroundColor:"red", padding:7, borderRadius:20, width:40, height:40,alignItems:"center",justifyContent:"center"}}>
-        <Ionicons name="location-sharp" size={24} color="white" />
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrorMsg("Konum izni verilmedi");
+        return;
+      }
 
-        </TouchableOpacity>
-        <TouchableOpacity style={{backgroundColor:"#4CE5B1",padding:7, borderRadius:20, width:40, height:40,alignItems:"center",justifyContent:"center"}}>
-
-          <FontAwesome6 name="phone" size={18} color="white" />
-        </TouchableOpacity>
-
-      </View>
-    </View>
-  );
+      let location = await Location.getCurrentPositionAsync({});
+      setLocation(location);
+    })();
+  }, []);
 
   return (
+    // <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    //   {errorMsg ? <Text>{errorMsg}</Text> : null}
+    //   {location ? (
+    //     <Text>
+    //       Latitude: {location.coords.latitude}, Longitude: {location.coords.longitude}
+    //     </Text>
+    //   ) : (
+    //     <Text>Konum bilgisi yükleniyor...</Text>
+    //   )}
+    // </View>
     <View style={styles.container}>
-      <View style={styles.pharmacies}>
-        <TouchableOpacity style={styles.allPharmacies}>
-          <Text style={{ color: "white" }}>Bütün Eczaneler</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.nightPharmacies}>
-          <Text style={{ color: "red" }}>Nöbetçi Eczaneler</Text>
-        </TouchableOpacity>
-      </View>
-      <FlatList
-        data={pharmacies}
-        renderItem={renderPharmacyItem}
-        keyExtractor={(item) => item.id.toString()}
+      {/* {renderLabel()} */}
+      <Dropdown
+        style={[styles.dropdown, isCityFocus && { borderColor: "blue" }]}
+        placeholderStyle={styles.placeholderStyle}
+        selectedTextStyle={styles.selectedTextStyle}
+        inputSearchStyle={styles.inputSearchStyle}
+        iconStyle={styles.iconStyle}
+        data={cities.map(city => ({ label: city, value: city }))} // Şehirleri Dropdown'a geçir
+        search
+        maxHeight={300}
+        labelField="label"
+        valueField="value"
+        placeholder={!isCityFocus ? "Şehir Seçiniz" : "..."}
+        searchPlaceholder="Search..."
+        value={selectedCity}
+        onFocus={() => setIsCityFocus(true)}
+        onBlur={() => setIsCityFocus(false)}
+        onChange={(item) => {
+          setSelectedCity(item.value);
+          setIsCityFocus(false);
+        }}
       />
+      {/* {selectedCity && (
+        <Dropdown
+          style={[styles.dropdown, isDistrictFocus && { borderColor: "blue" }]}
+          placeholderStyle={styles.placeholderStyle}
+          selectedTextStyle={styles.selectedTextStyle}
+          inputSearchStyle={styles.inputSearchStyle}
+          iconStyle={styles.iconStyle}
+          data={datas
+            .find((city) => city.name === selectedCity)
+            ?.towns.flatMap((town) =>
+              town.districts.map((district) => ({
+                label: district.name,
+                value: district.name,
+              }))
+            )}
+          search
+          maxHeight={300}
+          labelField="label"
+          valueField="value"
+          placeholder={!isDistrictFocus ? "İlçe Seçiniz" : "..."}
+          searchPlaceholder="Search..."
+          value={selectedDistrict}
+          onFocus={() => setIsDistrictFocus(true)}
+          onBlur={() => setIsDistrictFocus(false)}
+          onChange={(item) => {
+            setSelectedDistrict(item.value);
+            setIsDistrictFocus(false);
+          }}
+        />
+      )} */}
     </View>
   );
 };
 
-export default YourComponent;
+export default Login;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    marginHorizontal: 15,
-
+    padding: 16,
+    // flex:1,
+    // justifyContent: 'flex-start',
+    // alignContent:'center'
   },
-  pharmacies: {
-    marginTop: 15,
-    with: 671,
+  dropdown: {
     height: 50,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "red",
-    justifyContent: "space-around",
-    borderRadius: 10,
-    padding: 5
+    borderColor: "gray",
+    borderWidth: 0.5,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    margin: 10,
   },
-  allPharmacies: {
-    backgroundColor: "transparent",
-    borderRadius: 10,
-    padding: 5,
-    width: 150,
-    alignItems: "center"
+  icon: {
+    marginRight: 5,
   },
-  nightPharmacies: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    padding: 5,
-    width: 150,
-    alignItems: "center"
-  }
-})
+  label: {
+    position: "absolute",
+    backgroundColor: "white",
+    left: 22,
+    top: 8,
+    zIndex: 999,
+    paddingHorizontal: 8,
+    fontSize: 14,
+  },
+  placeholderStyle: {
+    fontSize: 16,
+  },
+  selectedTextStyle: {
+    fontSize: 16,
+  },
+  iconStyle: {
+    width: 20,
+    height: 20,
+  },
+  inputSearchStyle: {
+    height: 40,
+    fontSize: 16,
+  },
+});
+
