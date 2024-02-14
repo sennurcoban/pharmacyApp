@@ -1,62 +1,77 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-// import Geolocation from '@react-native-community/geolocation';
+import Geolocation from '@react-native-community/geolocation';
 
 const ClosesPharmacyScreen = () => {
-  const [currentRegion, setCurrentRegion] = useState(null); // Bulunduğunuz konumun bilgisini tutmak için bir state
+  const [currentRegion, setCurrentRegion] = useState(null);
 
-  // useEffect(() => {
-  //   // Bulunduğunuz konumu almak için bir işlev
-  //   const getCurrentLocation = () => {
-  //     Geolocation.getCurrentPosition(
-  //       (position) => {
-  //         const { latitude, longitude } = position.coords;
-  //         setCurrentRegion({
-  //           latitude,
-  //           longitude,
-  //           latitudeDelta: 0.0922,
-  //           longitudeDelta: 0.0421,
-  //         }); // Konumu güncelle
-  //       },
-  //       (error) => console.error(error),
-  //       { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
-  //     );
-  //   };
+  useEffect(() => {
+    const getCurrentLocation = () => {
+      Geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setCurrentRegion({
+            latitude,
+            longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }); 
+        },
+        (error) => console.error(error),
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+      );
+    };
 
-  //   getCurrentLocation(); // İlk render zamanında konumu al
+    getCurrentLocation(); 
 
-  //   // Unmount sırasında izlemeyi durdur
-  //   return () => {
-  //     Geolocation.clearWatch();
-  //   };
-  // }, []);
+    return () => {
+      Geolocation.clearWatch();
+    };
+  }, []);
 
   return (
-    <View style={styles.container}>
-      <MapView style={styles.map} >
-        {/* {currentRegion && (
-          <Marker
-            coordinate={{
-              latitude: currentRegion.latitude,
-              longitude: currentRegion.longitude,
-            }}
-          >
-            <View style={styles.marker}>
-              <Text style={styles.markerText}>Siz Buradasınız</Text>
-            </View>
-          </Marker>
-        )} */}
+    // <View style={styles.container}>
+    //   <MapView style={styles.map} >
+    //     {/* {currentRegion && (
+    //       <Marker
+    //         coordinate={{
+    //           latitude: currentRegion.latitude,
+    //           longitude: currentRegion.longitude,
+    //         }}
+    //       >
+    //         <View style={styles.marker}>
+    //           <Text style={styles.markerText}>Siz Buradasınız</Text>
+    //         </View>
+    //       </Marker>
+    //     )} */}
+    //   </MapView>
+    //   {/* <MapView style={styles.map} /> */}
+    //   <View style={styles.pharmacies}>
+    //     <TouchableOpacity style={styles.allPharmacies}>
+    //       <Text style={{ color: "white" }}>Bütün Eczaneler</Text>
+    //     </TouchableOpacity>
+    //     <TouchableOpacity style={styles.nightPharmacies}>
+    //       <Text style={{ color: "red" }}>Nöbetçi Eczaneler</Text>
+    //     </TouchableOpacity>
+    //   </View>
+    // </View>
+    <View style={{ flex: 1 }}>
+      <MapView
+        style={{ flex: 1 }}
+        initialRegion={{
+          latitude: 37.78825,
+          longitude: -122.4324,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }}
+      >
+        <Marker
+          coordinate={{ latitude: 37.78825, longitude: -122.4324 }}
+          title="Marker Title"
+          description="Marker Description"
+        />
       </MapView>
-      {/* <MapView style={styles.map} /> */}
-      <View style={styles.pharmacies}>
-        <TouchableOpacity style={styles.allPharmacies}>
-          <Text style={{ color: "white" }}>Bütün Eczaneler</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.nightPharmacies}>
-          <Text style={{ color: "red" }}>Nöbetçi Eczaneler</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };

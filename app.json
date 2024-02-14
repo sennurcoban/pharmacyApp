@@ -15,13 +15,17 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.developerintime.pharmacyApp"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+        "backgroundColor": "#ffffff",
+        "package": "com.developerintime.pharmacyApp",
+        "versionCode": 1
+      },
+      "package": "com.developerintime.pharmacyApp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
