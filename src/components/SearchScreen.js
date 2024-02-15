@@ -1,60 +1,133 @@
-import React, { useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
+import React, { useMemo, useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import * as Location from "expo-location";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Dropdown } from "react-native-element-dropdown";
 import BottomSheet from "@gorhom/bottom-sheet";
 import MapView from "react-native-maps";
-// import BottomSheet from '@gorhom/bottom-sheet';
+import axios from "axios";
 // import { GestureHandlerRootView } from 'react-native-gesture-handler'
 
 const Tab = createBottomTabNavigator();
 
 const SearchScreen = () => {
-  const snapPoints = useMemo(() => ["50%", "50%", "70%", "100"]);
-  const [selectedCity, setSelectedCity] = useState(null);
+  const snapPoints = useMemo(() => ["50%", "53%", "70%", "100"]);
+  const [selectedCity, setSelectedCity] = useState("");
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
   const [isCityFocus, setIsCityFocus] = useState(false);
   const [cities, setCities] = useState([]);
+  const [location, setLocation] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [isDistrictFocus, setIsDistrictFocus] = useState(false);
+
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const response = await axios.get(
+          "https://eczaneapi.intimeinfo.net/api/Eczane/GetCities",
+          {
+            headers: {
+              authorization: "apikey ",
+              "content-type": "application/json",
+            },
+          }
+        );
+        const cityNames = response.data.data.map((item) => item.ad);
+        setCities(cityNames);
+      } catch (error) {
+        console.error("Hata:", error.message);
+      }
+    };
+    fetchCities();
+  }, []);
+
+  // İlk dropdown'dan bir şehir seçildiğinde çalışacak olan fonksiyon
+const handleCitySelect = (cityId) => {
+  // Seçilen şehrin ID'si ile ilgili ilçelerin bulunduğu veriyi alın
+  const selectedCity = cities.find(city => city.id === cityId);
+  if (selectedCity) {
+    // İlçeleri güncelleyin
+    setDistricts(selectedCity.districts);
+  }
+};
+
+// İkinci dropdown'da bir ilçe seçildiğinde çalışacak olan fonksiyon
+const handleDistrictSelect = (districtId) => {
+  // Seçilen ilçenin ID'si ile ilgili işlemleri yapabilirsiniz
+  console.log("dönenn id",districtId);
+};
+
+  const renderLabel = () => {
+    if (value || isFocus) {
+      return <View style={[styles.label, isFocus && { color: "blue" }]}></View>;
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrorMsg("Konum izni verilmedi");
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      setLocation(location);
+    })();
+  }, []);
 
   // useEffect(() => {
-  //   const fetchCities = async () => {
-  //     try {
-  //       const response = await axios.get('https://www.openstreetmap.org/export#map=17/41.07872/28.23803', {
-  //         headers: {
-  //           'content-type': 'application/json'
-  //         }
-  //       });
-  //       const cityNames = response.data.result.map(item => item.name);
-  //       setCities(cityNames);
-  //     } catch (error) {
-  //       console.error('Hata:', error.message);
-  //     }
-  //   };
   //   fetchCities();
   // }, []);
 
-  // useEffect(() => {
-  //   (async () => {
-  //     let { status } = await Location.requestForegroundPermissionsAsync();
-  //     if (status !== "granted") {
-  //       setErrorMsg("Konum izni verilmedi");
-  //       return;
+  // const fetchCities = async () => {
+  //   try {
+  //     const response = await axios.get(
+  //       "https://eczaneapi.intimeinfo.net/api/Eczane/GetCities"
+  //     );
+  //     // const cityData = response.data.data.map((item) => item.ad);
+  //     // const data = await response.json();
+  //     console.log(response.data);
+  //     if (response.data?.isSuccess) {
+  //       setCities(response.data?.data.ad);
+  //     } else {
+  //       console.error("API Error:", response.data);
   //     }
+  //   } catch (error) {
+  //     console.error("Fetch Error:", error);
+  //   }
+  // };
 
-  //     let location = await Location.getCurrentPositionAsync({});
-  //     setLocation(location);
-  //   })();
-  // }, []);
+  // useEffect(() => {
+  //   const fetchDistricts = async () => {
+  //     try {
+  //       const response = await axios.get(
+  //         "https://eczaneapi.intimeinfo.net/api/Eczane/GetCities",
+  //         {
+  //           params: {
+  //             id: selectedDistrict,
+  //           },
+  //         }
+  //       );
+  //       const cityData = response.data.data.map((item) => item.ad);
+  //       console.log("RESPONSE", cityData);
+  //       setCities(cityData);
+  //     } catch (error) {
+  //       console.error("Error fetching data: ", error);
+  //     }
+  //   };
+
+  //   if (selectedDistrict) {
+  //     fetchDistricts();
+  //   }
+  // }, [selectedDistrict]);
 
   return (
     <>
-        <View style={styles.container}>
-          <MapView style={styles.map}>
-            {/* {currentRegion && (
+      <View style={styles.container}>
+        <MapView style={styles.map}>
+          {/* {currentRegion && (
           <Marker
             coordinate={{
               latitude: currentRegion.latitude,
@@ -66,56 +139,81 @@ const SearchScreen = () => {
             </View>
           </Marker>
         )} */}
-          </MapView>
-          {/* <MapView style={styles.map} /> */}
-          <View style={styles.pharmacies}>
-            <TouchableOpacity style={styles.allPharmacies}>
-              <Text style={{ color: "white" }}>Bütün Eczaneler</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.nightPharmacies}>
-              <Text style={{ color: "red" }}>Nöbetçi Eczaneler</Text>
-            </TouchableOpacity>
-          </View>
+        </MapView>
+        {/* <MapView style={styles.map} /> */}
+        <View style={styles.pharmacies}>
+          <TouchableOpacity style={styles.allPharmacies}>
+            <Text style={{ color: "white" }}>Bütün Eczaneler</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.nightPharmacies}>
+            <Text style={{ color: "red" }}>Nöbetçi Eczaneler</Text>
+          </TouchableOpacity>
         </View>
-        <BottomSheet snapPoints={snapPoints}>
-          <View>
-            <Text style={styles.text}>Filtrele</Text>
-            <Dropdown
-              style={[styles.dropdown, isCityFocus && { borderColor: "blue" }]}
-              placeholderStyle={styles.placeholderStyle}
-              selectedTextStyle={styles.selectedTextStyle}
-              inputSearchStyle={styles.inputSearchStyle}
-              iconStyle={styles.iconStyle}
-              data={cities.map((city) => ({ label: city, value: city }))} // Şehirleri Dropdown'a geçir
-              search
-              maxHeight={300}
-              labelField="label"
-              valueField="value"
-              placeholder={!isCityFocus ? "Şehir Seçiniz" : "..."}
-              searchPlaceholder="Search..."
-              value={selectedCity}
-              onFocus={() => setIsCityFocus(true)}
-              onBlur={() => setIsCityFocus(false)}
-              onChange={(item) => {
-                setSelectedCity(item.value);
-                setIsCityFocus(false);
-              }}
-            />
-            <Text style={[styles.text, { fontSize: 13 }]}>
+      </View>
+      <BottomSheet snapPoints={snapPoints}>
+        <View>
+          <Text style={styles.text}>Filtrele</Text>
+          <Dropdown
+            style={[styles.dropdown, isCityFocus && { borderColor: "blue" }]}
+            placeholderStyle={styles.placeholderStyle}
+            selectedTextStyle={styles.selectedTextStyle}
+            inputSearchStyle={styles.inputSearchStyle}
+            iconStyle={styles.iconStyle}
+            data={cities.map((city) => ({ label: city, value: city }))}
+            search
+            maxHeight={300}
+            labelField="label"
+            valueField="value"
+            placeholder={!isCityFocus ? "Şehir Seçiniz" : "..."}
+            searchPlaceholder="Search..."
+            value={selectedCity}
+            onFocus={() => setIsCityFocus(true)}
+            onBlur={() => setIsCityFocus(false)}
+            onChange={(selectedCity) => handleCitySelect(selectedCity.id)}
+          />
+          <Dropdown
+            style={[
+              styles.dropdown,
+              isDistrictFocus && { borderColor: "blue" },
+            ]}
+            placeholderStyle={styles.placeholderStyle}
+            selectedTextStyle={styles.selectedTextStyle}
+            inputSearchStyle={styles.inputSearchStyle}
+            iconStyle={styles.iconStyle}
+            data={districts}
+            search
+            maxHeight={300}
+            labelField="label"
+            valueField="value"
+            placeholder={!isDistrictFocus ? "İlçe Seçiniz" : "..."}
+            searchPlaceholder="Search..."
+            value={selectedDistrict}
+            onFocus={() => setIsDistrictFocus(true)}
+            onBlur={() => setIsDistrictFocus(false)}
+            onChange={(selectedDistrict) => handleDistrictSelect(selectedDistrict.id)}
+          />
+          <TouchableOpacity>
+            <Text style={[styles.text, { fontSize: 14, fontWeight: "300" }]}>
               Filtreleri Temizle
             </Text>
-          </View>
-        </BottomSheet>
-      {/* <BottomSheet
-        index={0}
-        snapPoints={['25%', '50%', '75%']}
-        isVisible={isVisible}
-        onClose={toggleBottomSheet}
-      >
-        <View style={{ height: 200, backgroundColor: 'white' }}>
-          <Text>Bottom Sheet Content</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button}>
+            <Text
+              style={[
+                styles.text,
+                {
+                  fontSize: 14,
+                  fontWeight: "700",
+                  alignSelf: "center",
+                  color: "#FFFFFF",
+                },
+              ]}
+            >
+              Ara
+            </Text>
+          </TouchableOpacity>
         </View>
-      </BottomSheet> */}
+      </BottomSheet>
     </>
   );
 };
@@ -128,11 +226,14 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
-    position: "absolute", // Harita bileşeni pozisyonu ayarlanıyor
+    position: "absolute",
     top: 0,
     bottom: 0,
     left: 0,
     right: 0,
+  },
+  placeholderStyle: {
+    fontWeight: "200",
   },
   pharmacies: {
     marginTop: 15,
@@ -172,6 +273,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 20,
     paddingHorizontal: 10,
+    fontWeight: "400",
   },
   modalContainer: {
     flex: 1,
@@ -190,5 +292,11 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: "red",
     borderRadius: 5,
+  },
+  button: {
+    backgroundColor: "#EE091B",
+    padding: 15,
+    margin: 10,
+    borderRadius: 10,
   },
 });
