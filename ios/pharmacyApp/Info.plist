@@ -50,10 +50,10 @@
     </dict>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your location</string>
-    <key>NSLocationAlwaysUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your location</string>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your location</string>
+    <string>Uygulama konum bilgilerinizi kullanmak için izin istiyor.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>Uygulama konum bilgilerinizi kullanmak için izin istiyor.</string>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
     <key>UIRequiredDeviceCapabilities</key>

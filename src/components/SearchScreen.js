@@ -6,50 +6,21 @@ import { Dropdown } from "react-native-element-dropdown";
 import BottomSheet from "@gorhom/bottom-sheet";
 import MapView, { Marker } from "react-native-maps";
 import axios from "axios";
-import Geolocation from '@react-native-community/geolocation';
-
-// import { GestureHandlerRootView } from 'react-native-gesture-handler'
 
 const Tab = createBottomTabNavigator();
 
 const SearchScreen = () => {
-  const snapPoints = useMemo(() => ["50%", "53%", "70%", "100"]);
+  const snapPoints = useMemo(() => ["60%", "53%", "70%", "100"]);
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState(null);
   const [isCityFocus, setIsCityFocus] = useState(false);
   const [cities, setCities] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [selectedCityId, setSelectedCityId] = useState(null);
-  const [location, setLocation] = useState(null);
+  const [location, setLocation] = useState({});
   const [errorMsg, setErrorMsg] = useState(null);
   const [isDistrictFocus, setIsDistrictFocus] = useState(false);
-  const [response, setResponse] = useState(null); 
-
-  const [currentRegion, setCurrentRegion] = useState(null);
-
-  useEffect(() => {
-    const getCurrentLocation = () => {
-      Geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setCurrentRegion({
-            latitude,
-            longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          });
-        },
-        (error) => console.error(error),
-        { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
-      );
-    };
-
-    getCurrentLocation();
-
-    return () => {
-      Geolocation.clearWatch();
-    };
-  }, []);
+  const [response, setResponse] = useState(null);
 
   useEffect(() => {
     const fetchCities = async () => {
@@ -69,7 +40,7 @@ const SearchScreen = () => {
     fetchCities();
   }, []);
 
-  // İlk dropdown'dan bir şehir seçildiğinde çalışacak olan fonksiyon
+  //İlk dropdown'dan bir şehir seçildiğinde çalışacak olan fonksiyon
   const handleCitySelect = (selectedCity) => {
     if (selectedCity) {
       setSelectedCityId(selectedCity.id);
@@ -100,42 +71,40 @@ const SearchScreen = () => {
     console.log("dönenn id", districtId);
   };
 
-
-
   // arama butonunda seçim yapıldıktan sonra çalışacak kod
-  const handleSearchButton = async (selectedCity, selectedDistrict) => {
-    if (selectedCity && selectedDistrict) {
-      console.log("Seçilen şehir:", selectedCity.city);
-      console.log("Seçilen ilçe:", selectedDistrict.district);
+  // const handleSearchButton = async (selectedCity, selectedDistrict) => {
+  //   if (selectedCity && selectedDistrict) {
+  //     console.log("Seçilen şehir:", selectedCity.city);
+  //     console.log("Seçilen ilçe:", selectedDistrict.district);
 
-      try {
-        const response = await axios.get(
-          `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?CitiesName=${selectedCity}&DistrictName=${selectedDistrict}`
-        );
+  //     try {
+  //       const response = await axios.get(
+  //         `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?CitiesName=${selectedCity}&DistrictName=${selectedDistrict}`
+  //       );
 
-        console.log("Arama Sonucu:", response.data);
-      } catch (error) {
-        console.error("Hata:", error.message);
-      }
-    } else {
-      console.error("Şehir ve ilçe seçilmedi!");
-    }
-  };
+  //       console.log("Arama Sonucu:", response.data);
+  //     } catch (error) {
+  //       console.error("Hata:", error.message);
+  //     }
+  //   } else {
+  //     console.error("Şehir ve ilçe seçilmedi!");
+  //   }
+  // };
 
-  const fetchSearchButton = async (selectedCity, selectedDistrict) => {
-    try {
-      const response = await axios.get(
-        `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?CitiesName=${selectedCity}&DistrictName=${selectedDistrict}`
-      );
-      const districtData = response.data.data.map((district) => ({
-        id: district.id,
-        label: district.ad,
-      }));
-      setDistricts(districtData);
-    } catch (error) {
-      console.error("Hata:", error.message);
-    }
-  };
+  // const fetchSearchButton = async (selectedCity, selectedDistrict) => {
+  //   try {
+  //     const response = await axios.get(
+  //       `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?CitiesName=${selectedCity}&DistrictName=${selectedDistrict}`
+  //     );
+  //     const districtData = response.data.data.map((district) => ({
+  //       id: district.id,
+  //       label: district.ad,
+  //     }));
+  //     setDistricts(districtData);
+  //   } catch (error) {
+  //     console.error("Hata:", error.message);
+  //   }
+  // };
 
   //null istek atma denemesi
   const searchButton = async () => {
@@ -143,8 +112,7 @@ const SearchScreen = () => {
       const response = await axios.get(
         `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation`
       );
-      console.log("donen data", response.data)
-      setResponse(response)
+      setResponse(response);
       // const districtData = response.data.data.map((district) => ({
       //   id: district.id,
       //   label: district.ad,
@@ -164,12 +132,38 @@ const SearchScreen = () => {
     setIsDistrictFocus(false); // İlçe dropdown'unun odaklanma durumunu sıfırla
   };
 
-  const renderLabel = () => {
-    if (value || isFocus) {
-      return <View style={[styles.label, isFocus && { color: "blue" }]}></View>;
-    }
-    return null;
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          console.error("Permission to access location was denied");
+          return;
+        }
+
+        const location = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = location.coords;
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+        const response = await axios.get(url);
+        const city = response.data.address.province;
+        const district = response.data.address.town;
+        console.log(response.data.lat);
+        console.log(response.data.lon);
+        console.log(city);
+        console.log(district);
+
+        // Şehir ve ilçe bilgilerini güncelle
+        setCities([city]); // sadece seçilen şehri güncelle
+        setSelectedDistrict(district);
+
+        // Şehir ve ilçe bilgilerini kullanarak ilgili ilçeleri al
+        // fetchDistricts(selectedCityId);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchData();
+  }, [selectedCity, selectedDistrict]);
 
   useEffect(() => {
     (async () => {
@@ -187,32 +181,20 @@ const SearchScreen = () => {
   return (
     <>
       <View style={styles.container}>
-        {/* <MapView style={styles.map}>
-          {currentRegion && (
-          <Marker
-            coordinate={{
-              latitude: currentRegion.latitude,
-              longitude: currentRegion.longitude,
-            }}
-          >
-            <View style={styles.marker}>
-              <Text style={styles.markerText}>Siz Buradasınız</Text>
-            </View>
-          </Marker>
-        )}
-        </MapView> */}
         <MapView style={{ flex: 1 }}>
-          {response && response.data && response.data.data.map((pharmacy) => (
-            <Marker
-              key={pharmacy.id}
-              coordinate={{
-                latitude: pharmacy.latitude,
-                longitude: pharmacy.longitude,
-              }}
-              title={pharmacy.pharmacyName}
-              description={`${pharmacy.address}, ${pharmacy.city}, ${pharmacy.district}`}
-            />
-          ))}
+          {response &&
+            response.data &&
+            response.data.data.map((pharmacy) => (
+              <Marker
+                key={pharmacy.id}
+                coordinate={{
+                  latitude: pharmacy.latitude,
+                  longitude: pharmacy.longitude,
+                }}
+                title={pharmacy.pharmacyName}
+                description={`${pharmacy.address}, ${pharmacy.city}, ${pharmacy.district}`}
+              />
+            ))}
         </MapView>
         <View style={styles.pharmacies}>
           <TouchableOpacity style={styles.allPharmacies}>
@@ -239,12 +221,12 @@ const SearchScreen = () => {
             valueField="id"
             placeholder={!isCityFocus ? "Şehir" : "..."}
             searchPlaceholder="Ara..."
-            value={selectedCity}
+            value={selectedCity && selectedCity.label}
             onFocus={() => setIsCityFocus(true)}
             onBlur={() => setIsCityFocus(false)}
             onChange={(selectedCity) => handleCitySelect(selectedCity)}
           />
-          <Dropdown
+          {/* <Dropdown
             style={[
               styles.dropdown,
               isDistrictFocus && { borderColor: "blue" },
@@ -263,8 +245,10 @@ const SearchScreen = () => {
             value={selectedDistrict}
             onFocus={() => setIsDistrictFocus(true)}
             onBlur={() => setIsDistrictFocus(false)}
-            onChange={(selectedDistrict) => handleDistrictSelect(selectedDistrict)}
-          />
+            // onChange={(selectedDistrict) =>
+            //   handleDistrictSelect(selectedDistrict)
+            // }
+          /> */}
           <TouchableOpacity onPress={handleClearFilters}>
             <Text style={[styles.text, { fontSize: 14, fontWeight: "300" }]}>
               Filtreleri Temizle
@@ -373,3 +357,4 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
 });
+

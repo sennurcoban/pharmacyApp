@@ -1,77 +1,58 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import { StyleSheet, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import Geolocation from '@react-native-community/geolocation';
+import * as Location from 'expo-location';
 
 const ClosesPharmacyScreen = () => {
   const [currentRegion, setCurrentRegion] = useState(null);
 
   useEffect(() => {
-    const getCurrentLocation = () => {
-      Geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setCurrentRegion({
-            latitude,
-            longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }); 
-        },
-        (error) => console.error(error),
-        { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
-      );
+    const getCurrentLocation = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          console.error('Permission to access location was denied');
+          return;
+        }
+        
+        const location = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = location.coords;
+        
+        setCurrentRegion({
+          latitude,
+          longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      } catch (error) {
+        console.error(error);
+      }
     };
 
-    getCurrentLocation(); 
-
-    return () => {
-      Geolocation.clearWatch();
-    };
+    getCurrentLocation();
   }, []);
 
   return (
-    // <View style={styles.container}>
-    //   <MapView style={styles.map} >
-    //     {/* {currentRegion && (
-    //       <Marker
-    //         coordinate={{
-    //           latitude: currentRegion.latitude,
-    //           longitude: currentRegion.longitude,
-    //         }}
-    //       >
-    //         <View style={styles.marker}>
-    //           <Text style={styles.markerText}>Siz Buradasınız</Text>
-    //         </View>
-    //       </Marker>
-    //     )} */}
-    //   </MapView>
-    //   {/* <MapView style={styles.map} /> */}
-    //   <View style={styles.pharmacies}>
-    //     <TouchableOpacity style={styles.allPharmacies}>
-    //       <Text style={{ color: "white" }}>Bütün Eczaneler</Text>
-    //     </TouchableOpacity>
-    //     <TouchableOpacity style={styles.nightPharmacies}>
-    //       <Text style={{ color: "red" }}>Nöbetçi Eczaneler</Text>
-    //     </TouchableOpacity>
-    //   </View>
-    // </View>
-    <View style={{ flex: 1 }}>
-      <MapView
-        style={{ flex: 1 }}
-        initialRegion={{
-          latitude: 37.78825,
-          longitude: -122.4324,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        }}
-      >
-        <Marker
-          coordinate={{ latitude: 37.78825, longitude: -122.4324 }}
-          title="Marker Title"
-          description="Marker Description"
-        />
-      </MapView>
+    <View style={styles.container}>
+      {currentRegion && (
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: currentRegion.latitude,
+            longitude: currentRegion.longitude,
+            latitudeDelta: currentRegion.latitudeDelta,
+            longitudeDelta: currentRegion.longitudeDelta,
+          }}
+        >
+          <Marker
+            coordinate={{
+              latitude: currentRegion.latitude,
+              longitude: currentRegion.longitude,
+            }}
+            title="Siz Buradasınız"
+          />
+        </MapView>
+      )}
     </View>
   );
 };
@@ -84,37 +65,10 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
-    position: "absolute", // Harita bileşeni pozisyonu ayarlanıyor
+    position: "absolute",
     top: 0,
     bottom: 0,
     left: 0,
     right: 0,
-  },
-  pharmacies: {
-    marginTop: 15,
-    with: 671,
-    height: 60,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "red",
-    justifyContent: "space-around",
-    borderRadius: 10,
-    padding: 5,
-    marginHorizontal: 15,
-    marginTop: 30,
-  },
-  allPharmacies: {
-    backgroundColor: "transparent",
-    borderRadius: 10,
-    padding: 5,
-    width: 150,
-    alignItems: "center",
-  },
-  nightPharmacies: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    padding: 5,
-    width: 150,
-    alignItems: "center",
   },
 });
