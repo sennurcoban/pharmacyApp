@@ -29,14 +29,24 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff",
-        "package": "com.developerintime.pharmacyApp",
-        "versionCode": 1
+        "backgroundColor": "#ffffff"
       },
-      "package": "com.developerintime.pharmacyApp"
+      "versionCode": 1,
+      "package": "com.developerintime.pharmacyApp",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.FOREGROUND_SERVICE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ad2a2972-1363-48c1-a717-bf68d0f63dfc"
+      }
+    },
+    "owner": "developerintime"
   }
 }

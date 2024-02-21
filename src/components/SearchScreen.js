@@ -4,7 +4,7 @@ import * as Location from "expo-location";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Dropdown } from "react-native-element-dropdown";
 import BottomSheet from "@gorhom/bottom-sheet";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import axios from "axios";
 
 const Tab = createBottomTabNavigator();
@@ -22,7 +22,7 @@ const SearchScreen = ({navigation}) => {
     });
   }, [navigation]);
 
-  const snapPoints = useMemo(() => ["60%", "53%", "70%", "100"]);
+  const snapPoints = useMemo(() => ["45%", "53%", "70%", "100"]);
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState(null);
   const [isCityFocus, setIsCityFocus] = useState(false);
@@ -106,34 +106,34 @@ const SearchScreen = ({navigation}) => {
   //   setIsDistrictFocus(false); // İlçe dropdown'unun odaklanma durumunu sıfırla
   // };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          console.error("Permission to access location was denied");
-          return;
-        }
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       const { status } = await Location.requestForegroundPermissionsAsync();
+  //       if (status !== "granted") {
+  //         console.error("Permission to access location was denied");
+  //         return;
+  //       }
 
-        const location = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = location.coords;
-        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
-        const response = await axios.get(url);
-        const city = response.data.address.province;
-        const district = response.data.address.town;
+  //       const location = await Location.getCurrentPositionAsync({});
+  //       const { latitude, longitude } = location.coords;
+  //       const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+  //       const response = await axios.get(url);
+  //       const city = response.data.address.province;
+  //       const district = response.data.address.town;
 
-        // Şehir ve ilçe bilgilerini güncelle
-        setCities([{ label: city, value: city }]); // sadece seçilen şehri güncelle
-        setDistricts([{ label: district, value: district }]); // sadece seçilen ilçeyi güncelle
-        // setCities([city]); // sadece seçilen şehri güncelle
-        fetchPharmacies(city, district);
-        // setDistricts(district);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    fetchData();
-  }, []);
+  //       // Şehir ve ilçe bilgilerini güncelle
+  //       setCities([{ label: city, value: city }]); // sadece seçilen şehri güncelle
+  //       setDistricts([{ label: district, value: district }]); // sadece seçilen ilçeyi güncelle
+  //       // setCities([city]); // sadece seçilen şehri güncelle
+  //       fetchPharmacies(city, district);
+  //       // setDistricts(district);
+  //     } catch (error) {
+  //       console.error(error);
+  //     }
+  //   };
+  //   fetchData();
+  // }, []);
 
   const fetchPharmacies = async (selectedCity, selectedDistrict) => {
     console.log("seçilen şehir", selectedCity);
@@ -183,7 +183,7 @@ const SearchScreen = ({navigation}) => {
   return (
     <>
       <View style={styles.container}>
-        <MapView style={{ flex: 1 }}>
+        <MapView style={styles.map} provider={PROVIDER_GOOGLE}>
           {markers.map((pharmacy) => (
             <Marker
               key={pharmacy.id}
@@ -282,15 +282,13 @@ export default SearchScreen;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
+    flex:1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   map: {
-    flex: 1,
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
+    ...StyleSheet.absoluteFillObject,
   },
   placeholderStyle: {
     fontWeight: "200",

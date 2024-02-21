@@ -1,13 +1,20 @@
-import { FontAwesome6, Ionicons } from '@expo/vector-icons'; 
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { FontAwesome6, Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  Linking,
+} from "react-native";
 
-import { PixelRatio } from 'react-native';
+import { PixelRatio } from "react-native";
 
 const widthInDp = PixelRatio.getPixelSizeForLayoutSize(358);
 const heightInDp = PixelRatio.getPixelSizeForLayoutSize(57);
 
-const AllPharmaciesScreen = ({item}) => {
+const AllPharmaciesScreen = ({ item }) => {
   const [pharmacies, setPharmacies] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedDestination, setSelectedDestination] = useState(null);
@@ -18,16 +25,18 @@ const AllPharmaciesScreen = ({item}) => {
 
   const fetchPharmacies = async () => {
     try {
-      const response = await fetch('https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation');
+      const response = await fetch(
+        "https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation"
+      );
       const data = await response.json();
       // console.log(data)
       if (data.isSuccess) {
         setPharmacies(data.data);
       } else {
-        console.error('API Error:', data.errorMessage);
+        console.error("API Error:", data.errorMessage);
       }
     } catch (error) {
-      console.error('Fetch Error:', error);
+      console.error("Fetch Error:", error);
     }
   };
 
@@ -57,28 +66,59 @@ const AllPharmaciesScreen = ({item}) => {
     }
   };
 
-  
-
   const renderPharmacyItem = ({ item }) => (
-    <View style={{ paddingVertical: 30, paddingHorizontal:10, borderBottomWidth: 1, borderBottomColor: '#ccc', flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+    <View
+      style={{
+        paddingVertical: 30,
+        paddingHorizontal: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: "#ccc",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}
+    >
       <View style={{ flexDirection: "column", width: 200 }}>
-        <Text style={{ fontWeight: 'bold' }}>{item.pharmacyName}</Text>
-        <Text>{item.latitude} {item.longitude}</Text>
+        <Text style={{ fontWeight: "bold" }}>{item.pharmacyName}</Text>
+        <Text>
+          {item.latitude} {item.longitude}
+        </Text>
       </View>
-      <View style={{ flexDirection: "row", justifyContent: "space-around", width: 90 }}>
-        <TouchableOpacity 
-      onPress={() => handleOpenInMaps(item.latitude, item.longitude)}
-      style={{backgroundColor:"red", padding:7, borderRadius:20, width:40, height:40,alignItems:"center",justifyContent:"center"}}>
-        <Ionicons name="location-sharp" size={24} color="white" />
-
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-around",
+          width: 90,
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => handleOpenInMaps(item.latitude, item.longitude)}
+          style={{
+            backgroundColor: "red",
+            padding: 7,
+            borderRadius: 20,
+            width: 40,
+            height: 40,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Ionicons name="location-sharp" size={24} color="white" />
         </TouchableOpacity>
-        <TouchableOpacity 
-        onPress={() => handleCallPharmacy(item.phone)}
-        style={{backgroundColor:"#4CE5B1",padding:7, borderRadius:20, width:40, height:40,alignItems:"center",justifyContent:"center"}}>
-
+        <TouchableOpacity
+          onPress={() => handleCallPharmacy(item.phone)}
+          style={{
+            backgroundColor: "#4CE5B1",
+            padding: 7,
+            borderRadius: 20,
+            width: 40,
+            height: 40,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           <FontAwesome6 name="phone" size={18} color="white" />
         </TouchableOpacity>
-
       </View>
     </View>
   );
@@ -108,7 +148,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     marginHorizontal: 15,
-    marginTop:30
+    marginTop: 30,
   },
   pharmacies: {
     marginTop: 15,
@@ -119,20 +159,20 @@ const styles = StyleSheet.create({
     backgroundColor: "red",
     justifyContent: "space-around",
     borderRadius: 10,
-    padding: 5
+    padding: 5,
   },
   allPharmacies: {
     backgroundColor: "transparent",
     borderRadius: 10,
     padding: 5,
     width: 150,
-    alignItems: "center"
+    alignItems: "center",
   },
   nightPharmacies: {
     backgroundColor: "#FFFFFF",
     borderRadius: 10,
     padding: 5,
     width: 150,
-    alignItems: "center"
-  }
-})
+    alignItems: "center",
+  },
+});
