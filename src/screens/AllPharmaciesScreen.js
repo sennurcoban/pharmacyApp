@@ -29,6 +29,7 @@ const AllPharmaciesScreen = ({ item }) => {
         "https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation"
       );
       const data = await response.json();
+
       // console.log(data)
       if (data.isSuccess) {
         setPharmacies(data.data);
@@ -81,7 +82,7 @@ const AllPharmaciesScreen = ({ item }) => {
       <View style={{ flexDirection: "column", width: 200 }}>
         <Text style={{ fontWeight: "bold" }}>{item.pharmacyName}</Text>
         <Text>
-          {item.latitude} {item.longitude}
+          {item.address}
         </Text>
       </View>
       <View

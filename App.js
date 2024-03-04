@@ -1,29 +1,14 @@
-import Home from './src/screens/Home';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { FontAwesome6, Ionicons,MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons,MaterialCommunityIcons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import PharmacyDetail from './src/screens/PharmacyDetail';
-import Login from './src/screens/Login';
-import SearchScreen from './src/components/SearchScreen';
-import ClosesPharmacyScreen from './src/components/ClosesPharmacyScreen';
-import AllPharmaciesScreen from './src/components/AllPharmaciesScreen'
+import SearchScreen from './src/screens/SearchScreen';
+import ClosesPharmacyScreen from './src/screens/ClosesPharmacyScreen';
+import AllPharmaciesScreen from './src/screens/AllPharmaciesScreen'
 
 
-const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
-
-const StackNavigator = () => {
-  return (
-      <Stack.Navigator initialRouteName='Login'>
-      <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen name="Nöbetçi Eczaneler" component={Home} />
-        <Stack.Screen name="Details" component={PharmacyDetail} />
-      </Stack.Navigator>
-  );
-};
 
 const TabNavigator = () => {
   return (
