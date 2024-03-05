@@ -1,5 +1,5 @@
 import { FontAwesome6, Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -7,21 +7,25 @@ import {
   TouchableOpacity,
   StyleSheet,
   Linking,
+  Platform,
 } from "react-native";
-
-import { PixelRatio } from "react-native";
-
-const widthInDp = PixelRatio.getPixelSizeForLayoutSize(358);
-const heightInDp = PixelRatio.getPixelSizeForLayoutSize(57);
+import ActionSheet from "react-native-actionsheet";
 
 const AllPharmaciesScreen = ({ item }) => {
   const [pharmacies, setPharmacies] = useState([]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedDestination, setSelectedDestination] = useState(null);
+  const actionSheetRef = useRef(null);
+  const optionArray = Platform.select({
+    ios: ["Apple Haritalar", "Google Haritalar", "İptal"],
+    android: ["Google Haritalar", "İptal"],
+  });
 
   useEffect(() => {
     fetchPharmacies();
   }, []);
+
+  const showActionSheet = () => {
+    actionSheetRef.current?.show();
+  };
 
   const fetchPharmacies = async () => {
     try {
@@ -51,20 +55,22 @@ const AllPharmaciesScreen = ({ item }) => {
     Linking.openURL(url);
   };
 
-  const openInAppleMaps = () => {
-    if (selectedDestination) {
-      const location = `${latut},${selectedDestination.longitude}`;
-      const url = `http://maps.apple.com/?q=${location}`;
-      Linking.openURL(url);
+  const openInAppleMaps = (latitude, longitude) => {
+    const latLng = `${latitude},${longitude}`;
+    let url = "";
+    // iOS için
+    if (Platform.OS === "ios") {
+      url = `http://maps.apple.com/?ll=${latLng}`;
     }
-  };
+    // Android için
+    else if (Platform.OS === "android") {
+      url = `http://maps.google.com/?q=${latLng}`;
+    }
 
-  const openInGoogleMaps = () => {
-    if (selectedDestination) {
-      const location = `${selectedDestination.latitude},${selectedDestination.longitude}`;
-      const url = `https://www.google.com/maps/search/?api=1&query=${location}`;
-      Linking.openURL(url);
-    }
+    // URL'yi aç
+    Linking.openURL(url).catch((err) =>
+      console.error("Haritaları açarken hata oluştu:", err)
+    );
   };
 
   const renderPharmacyItem = ({ item }) => (
@@ -81,9 +87,7 @@ const AllPharmaciesScreen = ({ item }) => {
     >
       <View style={{ flexDirection: "column", width: 200 }}>
         <Text style={{ fontWeight: "bold" }}>{item.pharmacyName}</Text>
-        <Text>
-          {item.address}
-        </Text>
+        <Text>{item.address}</Text>
       </View>
       <View
         style={{
@@ -93,7 +97,8 @@ const AllPharmaciesScreen = ({ item }) => {
         }}
       >
         <TouchableOpacity
-          onPress={() => handleOpenInMaps(item.latitude, item.longitude)}
+          // onPress={() => handleOpenInMaps(item.latitude, item.longitude)}
+          onPress={showActionSheet}
           style={{
             backgroundColor: "red",
             padding: 7,
@@ -106,6 +111,29 @@ const AllPharmaciesScreen = ({ item }) => {
         >
           <Ionicons name="location-sharp" size={24} color="white" />
         </TouchableOpacity>
+        <ActionSheet
+          ref={actionSheetRef}
+          title="Harita Seçiniz"
+          options={optionArray}
+          cancelButtonIndex={optionArray.length - 1}
+          onPress={(index) => {
+            const selectedOption = optionArray[index];
+            if (selectedOption === "Apple Haritalar" && Platform.OS === "ios") {
+              openInAppleMaps(item.latitude, item.longitude)
+              // Apple Haritalar'a yönlendirme yap
+              // Örnek URL: 'http://maps.apple.com/?q=latitude,longitude'
+            } else if (selectedOption === "Google Haritalar") {
+              handleOpenInMaps(item.latitude, item.longitude)
+              // Google Haritalar'a yönlendirme yap
+              // Örnek URL: 'https://www.google.com/maps/search/?api=1&query=latitude,longitude'
+            } else if (selectedOption === "İptal") {
+              // İşlemi iptal et
+            } else {
+              // Geçersiz seçenek
+              Alert.alert("Hata", "Geçersiz seçenek");
+            }
+          }}
+        />
         <TouchableOpacity
           onPress={() => handleCallPharmacy(item.phone)}
           style={{
@@ -138,6 +166,7 @@ const AllPharmaciesScreen = ({ item }) => {
         data={pharmacies}
         renderItem={renderPharmacyItem}
         keyExtractor={(item) => item.id.toString()}
+        scrollEventThrottle={16}
       />
     </View>
   );

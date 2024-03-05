@@ -1,5 +1,13 @@
+// Gerekli importlar
 import React, { useMemo, useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Linking } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Linking,
+  Platform
+} from "react-native";
 import * as Location from "expo-location";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Dropdown } from "react-native-element-dropdown";
@@ -7,10 +15,12 @@ import BottomSheet from "@gorhom/bottom-sheet";
 import MapView, { Marker, PROVIDER_GOOGLE, Callout } from "react-native-maps";
 import axios from "axios";
 
+// Tab Navigator oluşturma
 const Tab = createBottomTabNavigator();
 
+// SearchScreen bileşeni
 const SearchScreen = () => {
-  const snapPoints = useMemo(() => ["45%", "53%", "70%", "100"], []);
+  // State'ler
   const [cities, setCities] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [selectedCity, setSelectedCity] = useState("");
@@ -25,7 +35,9 @@ const SearchScreen = () => {
   const [region, setRegion] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
 
+  // useEffect kullanımı
   useEffect(() => {
+    // Şehirleri getir
     const fetchCities = async () => {
       try {
         const response = await axios.get(
@@ -43,6 +55,7 @@ const SearchScreen = () => {
     fetchCities();
   }, []);
 
+  // Konumu getir
   useEffect(() => {
     const getLocation = async () => {
       try {
@@ -57,14 +70,15 @@ const SearchScreen = () => {
 
         //dropdownda konumun seçili olarak gelmesi için kullandım ama çalışmadı
         const { latitude, longitude } = locationData.coords;
-        const addressInfo = await Location.reverseGeocodeAsync({ latitude, longitude });
+        const addressInfo = await Location.reverseGeocodeAsync({
+          latitude,
+          longitude,
+        });
         const city = addressInfo[0].city;
         const district = addressInfo[0].district;
         // Belirlenen il ve ilçeyi seçili olarak kaydettik
         setSelectedCityId(city);
         setSelectedDistrictId(district);
-
-
       } catch (error) {
         console.error("Konum alınamadı:", error.message);
       }
@@ -73,6 +87,7 @@ const SearchScreen = () => {
     getLocation();
   }, []);
 
+  // Konum değiştiğinde harita bölgesini güncelle
   useEffect(() => {
     if (location.coords) {
       const { latitude, longitude } = location.coords;
@@ -86,32 +101,67 @@ const SearchScreen = () => {
     }
   }, [location]);
 
+  // Eczaneler verisi değiştiğinde harita bölgesini güncelle
   useEffect(() => {
     if (pharmacyData.length > 0) {
-      // Marker'ların bulunduğu ilk konum olarak ilk eczanenin konumunu kullandık
       const initialLocation = pharmacyData[0];
       const newRegion = {
         latitude: initialLocation.latitude,
         longitude: initialLocation.longitude,
-        latitudeDelta: 0.0922, 
+        latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
       };
       setRegion(newRegion);
     }
   }, [pharmacyData]);
 
-  //İlk dropdown'dan bir şehir seçildiğinde
-  const handleCitySelect = (selectedCity) => {
+  // Şehir seçildiğinde ilçeleri getir
+  const handleCitySelect = async (selectedCity) => {
     if (selectedCity) {
-      console.log("selectedCity: ", selectedCity.label)
-
       setSelectedCityId(selectedCity.id);
-      console.log("Seçilen şehrin ID'si:", selectedCity.id);
-      // İkinci dropdown için ilgili şehrin ilçelerini almak için axios isteği
       fetchDistricts(selectedCity.id);
     }
   };
 
+  // İlçe seçildiğinde
+  const handleDistrictSelect = (selectedDistrict) => {
+    setSelectedDistrict(selectedDistrict.label);
+    setSelectedDistrictId(selectedDistrict.id);
+  };
+
+  // Filtreleri temizle
+  const handleClearFilters = () => {
+    setDistricts([]);
+    setSelectedCityId("");
+    setSelectedDistrictId("");
+    setPharmacyData([]);
+  };
+
+  // Ara
+  const handleSearch = async () => {
+    try {
+      if (!selectedCityId || !selectedDistrictId) {
+        console.error("Şehir veya ilçe seçimi yapılmamış.");
+        return;
+      }
+
+      const cityName = selectedCity;
+      const districtName = selectedDistrict;
+
+      const response = await axios.get(
+        `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?CitiesName=${encodeURIComponent(
+          cityName
+        )}&DistrictName=${encodeURIComponent(districtName)}`
+      );
+      setPharmacyData(response.data.data);
+
+    } catch (error) {
+      console.error("Hata:", error.message);
+      setPharmacyData([]);
+    }
+  };
+
+  // İlçe değiştiğinde ilçelere göre eczaneleri getir
   const fetchDistricts = async (cityId) => {
     try {
       const response = await axios.get(
@@ -127,75 +177,41 @@ const SearchScreen = () => {
     }
   };
 
-  // İkinci dropdown'da bir ilçe seçildiğinde
-  const handleDistrictSelect = (selectedDistrict) => {
-    setSelectedDistrict(selectedDistrict.label);//bunu ekledikten sonra calisti
-    console.log("selectedDistrict: ", selectedDistrict.label)
-
-    setSelectedDistrictId(selectedDistrict.id);
-    console.log("dönenn id", selectedDistrict.id);
-  };
-
-  const handleClearFilters = () => {
-    setSelectedCity(null);
-    setSelectedDistrict(null);
-    setDistricts([]);
-    setSelectedCityId(null);
-    setSelectedDistrictId(null);
-    setIsCityFocus(false); 
-    setIsDistrictFocus(false);
-  };
-
-  const handleSearch = async () => {
-    try {
-      if (!selectedCityId || !selectedDistrictId) {
-        console.error("Şehir veya ilçe seçimi yapılmamış.");
-        return;
-      }
-
-      const cityName = selectedCity; 
-      const districtName = selectedDistrict;
-
-      const response = await axios.get(
-        `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?CitiesName=${encodeURIComponent(cityName)}&DistrictName=${encodeURIComponent(districtName)}`
-      );
-      setPharmacyData(response.data.data);
-
-      // console.log(response.data);
-    } catch (error) {
-      console.error("Hata:", error.message);
-    }
-  };
-
+  // Marker'a tıklama işlemi
   const handleMarkerPress = (pharmacy) => {
-    setSelectedMarker(pharmacy); // Seçilen Marker'ın bilgilerini saklamak için
+    setSelectedMarker(pharmacy);
   };
 
-  const handleCalloutPress = () => {
-    if (selectedMarker) {
-      const { latitude, longitude } = selectedMarker;
-  
-      // Google Maps URL'i oluştur
-      const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-      // Apple Maps URL'i oluştur
-      const appleMapsUrl = `http://maps.apple.com/?q=${latitude},${longitude}`;
-  
-      // Linki aç
-      Linking.openURL(googleMapsUrl).catch(() => {
-        // Eğer Google Maps açılamazsa, Apple Maps'i aç
-        Linking.openURL(appleMapsUrl).catch(() => {
-          console.log('Harita uygulaması açılamıyor');
-        });
-      });
+  // Marker'ın açıklama kısmına tıklama işlemi
+  const handleOpenInMaps = (latitude, longitude) => {
+    const latLng = `${latitude},${longitude}`;
+    let url = "";
+
+    // iOS için
+    if (Platform.OS === "ios") {
+      url = `http://maps.apple.com/?ll=${latLng}`;
     }
-  };
-  
-  
+    // Android için
+    else if (Platform.OS === "android") {
+      url = `http://maps.google.com/?q=${latLng}`;
+    }
 
+    // URL'yi aç
+    Linking.openURL(url).catch((err) =>
+      console.error("Haritaları açarken hata oluştu:", err)
+    );
+  };
+
+  // JSX içeriği
   return (
     <>
       <View style={styles.container}>
-        <MapView showsUserLocation style={styles.map} provider={PROVIDER_GOOGLE} region={region}>
+        <MapView
+          showsUserLocation
+          style={styles.map}
+          provider={PROVIDER_GOOGLE}
+          region={region}
+        >
           {pharmacyData.map((pharmacy) => (
             <Marker
               key={pharmacy.id}
@@ -204,34 +220,21 @@ const SearchScreen = () => {
                 longitude: pharmacy.longitude,
               }}
               title={pharmacy.pharmacyName}
-              // description={`${pharmacy.address}, ${pharmacy.city}, ${pharmacy.district}`}
-              onPress={() => handleMarkerPress(pharmacy)}
-            >
-              <Callout onPress={() => handleCalloutPress(pharmacy)}>
-                <View>
-                  <TouchableOpacity
-                  >
-                    <Text>{`${pharmacy.address}, ${pharmacy.city}, ${pharmacy.district}`}</Text>
-                  </TouchableOpacity>
-                </View>
-              </Callout>
-            </Marker>
+              description={`${pharmacy.address}, ${pharmacy.city}, ${pharmacy.district}`}
+              onPress={() =>
+                handleOpenInMaps(pharmacy.latitude, pharmacy.longitude)
+              }
+            />
           ))}
-
         </MapView>
-        <View style={styles.pharmacies}>
-          <TouchableOpacity style={styles.allPharmacies}>
-            <Text style={{ color: "white" }}>Bütün Eczaneler</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.nightPharmacies}>
-            <Text style={{ color: "red" }}>Nöbetçi Eczaneler</Text>
-          </TouchableOpacity>
-        </View>
       </View>
-      <BottomSheet snapPoints={snapPoints}>
+      <BottomSheet snapPoints={["43%", "53%", "70%", "100"]}>
         <View>
           <Dropdown
-            style={[styles.dropdown, isCityFocus && { borderColor: "blue" }]}
+            style={[
+              styles.dropdown,
+              isCityFocus && { borderColor: "blue" },
+            ]}
             placeholderStyle={styles.placeholderStyle}
             selectedTextStyle={styles.selectedTextStyle}
             inputSearchStyle={styles.inputSearchStyle}
@@ -276,10 +279,7 @@ const SearchScreen = () => {
               Filtreleri Temizle
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleSearch}
-            style={styles.button}
-          >
+          <TouchableOpacity onPress={handleSearch} style={styles.button}>
             <Text
               style={[
                 styles.text,
@@ -300,47 +300,19 @@ const SearchScreen = () => {
   );
 };
 
-export default SearchScreen;
-
+// Stil tanımlamaları
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
     flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+    justifyContent: "flex-end",
+    alignItems: "center",
   },
   map: {
     ...StyleSheet.absoluteFillObject,
   },
   placeholderStyle: {
     fontWeight: "200",
-  },
-  pharmacies: {
-    marginTop: 15,
-    with: 671,
-    height: 60,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "red",
-    justifyContent: "space-around",
-    borderRadius: 10,
-    padding: 5,
-    marginHorizontal: 15,
-    marginTop: 30,
-  },
-  allPharmacies: {
-    backgroundColor: "transparent",
-    borderRadius: 10,
-    padding: 5,
-    width: 150,
-    alignItems: "center",
-  },
-  nightPharmacies: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    padding: 5,
-    width: 150,
-    alignItems: "center",
   },
   dropdown: {
     height: 50,
@@ -355,24 +327,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     fontWeight: "400",
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalContent: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  closeModalButton: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: "red",
-    borderRadius: 5,
-  },
   button: {
     backgroundColor: "#EE091B",
     padding: 15,
@@ -380,3 +334,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
 });
+
+// SearchScreen bileşenini dışa aktarma
+export default SearchScreen;
