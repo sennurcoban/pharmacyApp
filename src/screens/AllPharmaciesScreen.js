@@ -60,7 +60,7 @@ const AllPharmaciesScreen = ({ item }) => {
     let url = "";
     // iOS için
     if (Platform.OS === "ios") {
-      url = `http://maps.apple.com/?ll=${latLng}`;
+      url = `http://maps.apple.com/?q=${latLng}`;
     }
     // Android için
     else if (Platform.OS === "android") {

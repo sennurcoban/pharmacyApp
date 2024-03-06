@@ -6,7 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Linking,
-  Platform
+  Platform,
 } from "react-native";
 import * as Location from "expo-location";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -65,11 +65,17 @@ const SearchScreen = () => {
           return;
         }
 
-        let locationData = await Location.getCurrentPositionAsync({});
-        setLocation(locationData);
+        let lastLocation = await Location.getLastKnownPositionAsync();
+        if (lastLocation) {
+          setLocation(lastLocation);
+          // return;
+        } else {
+          let location = await Location.getCurrentPositionAsync();
+          return setLocation(location);
+        }
 
         //dropdownda konumun seçili olarak gelmesi için kullandım ama çalışmadı
-        const { latitude, longitude } = locationData.coords;
+        const { latitude, longitude } = lastLocation.coords;
         const addressInfo = await Location.reverseGeocodeAsync({
           latitude,
           longitude,
@@ -77,6 +83,7 @@ const SearchScreen = () => {
         const city = addressInfo[0].city;
         const district = addressInfo[0].district;
         // Belirlenen il ve ilçeyi seçili olarak kaydettik
+        console.log("Seçilen Şehir: ", selectedCity);
         setSelectedCityId(city);
         setSelectedDistrictId(district);
       } catch (error) {
@@ -140,8 +147,13 @@ const SearchScreen = () => {
   // Ara
   const handleSearch = async () => {
     try {
-      if (!selectedCityId || !selectedDistrictId) {
-        console.error("Şehir veya ilçe seçimi yapılmamış.");
+      if (!selectedCityId) {
+        alert("Şehir seçimi yapılmamış.");
+        return;
+      }
+
+      if (!selectedDistrictId) {
+        alert("İlçe seçimi yapılmamış.");
         return;
       }
 
@@ -153,8 +165,15 @@ const SearchScreen = () => {
           cityName
         )}&DistrictName=${encodeURIComponent(districtName)}`
       );
-      setPharmacyData(response.data.data);
 
+      const responseData = response.data.data;
+
+      if (responseData.length === 0) {
+        alert("Seçilen bilgilere ait sonuç bulunamamıştır.");
+        console.log("Seçilen bilgilere ait sonuç bulunamamıştır.");
+      } else {
+        setPharmacyData(responseData);
+      }
     } catch (error) {
       console.error("Hata:", error.message);
       setPharmacyData([]);
@@ -189,7 +208,7 @@ const SearchScreen = () => {
 
     // iOS için
     if (Platform.OS === "ios") {
-      url = `http://maps.apple.com/?ll=${latLng}`;
+      url = `http://maps.apple.com/?q=${latLng}`;
     }
     // Android için
     else if (Platform.OS === "android") {
@@ -228,13 +247,10 @@ const SearchScreen = () => {
           ))}
         </MapView>
       </View>
-      <BottomSheet snapPoints={["43%", "53%", "70%", "100"]}>
+      <BottomSheet snapPoints={["45%", "53%", "70%", "100"]}>
         <View>
           <Dropdown
-            style={[
-              styles.dropdown,
-              isCityFocus && { borderColor: "blue" },
-            ]}
+            style={[styles.dropdown, isCityFocus && { borderColor: "blue" }]}
             placeholderStyle={styles.placeholderStyle}
             selectedTextStyle={styles.selectedTextStyle}
             inputSearchStyle={styles.inputSearchStyle}

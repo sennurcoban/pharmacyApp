@@ -28,11 +28,13 @@ const TabNavigator = () => {
           return <Ionicons name={iconName} size={size} color={color} />;
         }
       },
+      // paddingBottom:0,
       headerShown:false,
       tabBarStyle: {
         height:70,
         position:'absolute',
-        bottom:16,
+        bottom:30,
+        paddingBottom:0,
         right:16,
         left:16,
         borderRadius:10,
@@ -40,7 +42,7 @@ const TabNavigator = () => {
       },
       tabBarActiveTintColor: '#828282',
       tabBarInactiveTintColor: 'gray',
-      tabBarItemStyle: { paddingBottom: 5 },
+      tabBarItemStyle: { paddingBottom: 15 },
     })}
   >
     <Tab.Screen name="En Yakın" component={ClosesPharmacyScreen} />
