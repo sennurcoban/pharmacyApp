@@ -1,4 +1,3 @@
-// Gerekli importlar
 import React, { useMemo, useState, useEffect } from "react";
 import {
   View,
@@ -15,12 +14,9 @@ import BottomSheet from "@gorhom/bottom-sheet";
 import MapView, { Marker, PROVIDER_GOOGLE, Callout } from "react-native-maps";
 import axios from "axios";
 
-// Tab Navigator oluşturma
 const Tab = createBottomTabNavigator();
 
-// SearchScreen bileşeni
 const SearchScreen = () => {
-  // State'ler
   const [cities, setCities] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [selectedCity, setSelectedCity] = useState("");
@@ -35,7 +31,6 @@ const SearchScreen = () => {
   const [region, setRegion] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
 
-  // useEffect kullanımı
   useEffect(() => {
     // Şehirleri getir
     const fetchCities = async () => {
@@ -221,7 +216,6 @@ const SearchScreen = () => {
     );
   };
 
-  // JSX içeriği
   return (
     <>
       <View style={styles.container}>
@@ -316,7 +310,6 @@ const SearchScreen = () => {
   );
 };
 
-// Stil tanımlamaları
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
@@ -351,5 +344,4 @@ const styles = StyleSheet.create({
   },
 });
 
-// SearchScreen bileşenini dışa aktarma
 export default SearchScreen;
