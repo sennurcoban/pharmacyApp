@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,13 +6,22 @@ import {
   TouchableOpacity,
   Linking,
   Platform,
+  Image,
+  Dimensions,
 } from "react-native";
 import * as Location from "expo-location";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Dropdown } from "react-native-element-dropdown";
 import BottomSheet from "@gorhom/bottom-sheet";
-import MapView, { Marker, PROVIDER_GOOGLE, Callout } from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE, Circle } from "react-native-maps";
 import axios from "axios";
+import CustomCallout from "../components/CustomCallout";
+import marker_icon from "../../assets/ic_Pin_big.png";
+
+const { width, height } = Dimensions.get("window");
+// Eczaneleri kart şekline dnüştürürsem eğer
+const CARD_HEIGHT = height / 4;
+const CARD_WIDTH = CARD_HEIGHT -50;
 
 const Tab = createBottomTabNavigator();
 
@@ -24,7 +33,7 @@ const SearchScreen = () => {
   const [selectedCityId, setSelectedCityId] = useState("");
   const [selectedDistrictId, setSelectedDistrictId] = useState("");
   const [pharmacyData, setPharmacyData] = useState([]);
-  const [location, setLocation] = useState({});
+  const [location, setLocation] = useState("");
   const [errorMsg, setErrorMsg] = useState(null);
   const [isCityFocus, setIsCityFocus] = useState(false);
   const [isDistrictFocus, setIsDistrictFocus] = useState(false);
@@ -225,20 +234,40 @@ const SearchScreen = () => {
           provider={PROVIDER_GOOGLE}
           region={region}
         >
-          {pharmacyData.map((pharmacy) => (
-            <Marker
-              key={pharmacy.id}
-              coordinate={{
-                latitude: pharmacy.latitude,
-                longitude: pharmacy.longitude,
-              }}
-              title={pharmacy.pharmacyName}
-              description={`${pharmacy.address}, ${pharmacy.city}, ${pharmacy.district}`}
-              onPress={() =>
-                handleOpenInMaps(pharmacy.latitude, pharmacy.longitude)
-              }
-            />
-          ))}
+          {pharmacyData &&
+            pharmacyData.map((pharmacy) => (
+              <Marker
+                key={pharmacy.id}
+                coordinate={{
+                  latitude: pharmacy.latitude,
+                  longitude: pharmacy.longitude,
+                }}
+                title={pharmacy.pharmacyName}
+                description={`${pharmacy.address}, ${pharmacy.city}, ${pharmacy.district}`}
+                onCalloutPress={() =>
+                  handleOpenInMaps(pharmacy.latitude, pharmacy.longitude)
+                }
+                image={marker_icon}
+              >
+                {/* <Circle
+                  center={{
+                    latitude: pharmacy.latitude,
+                    longitude: pharmacy.longitude,
+                  }}
+                  radius={60000}
+                  strokeColor="#cc0000"
+                  fillColor="#cc0"
+                /> */}
+                {Platform.OS === "ios" ? (
+                  <CustomCallout
+                    pharmacy={pharmacy}
+                    handleOpenInMaps={() =>
+                      handleOpenInMaps(pharmacy.latitude, pharmacy.longitude)
+                    }
+                  />
+                ) : null}
+              </Marker>
+            ))}
         </MapView>
       </View>
       <BottomSheet snapPoints={["45%", "53%", "70%", "100"]}>
