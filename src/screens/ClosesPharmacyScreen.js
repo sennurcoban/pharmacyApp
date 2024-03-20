@@ -6,9 +6,10 @@ import {
   Linking,
   Text,
   TouchableOpacity,
-  ScrollView,
   Animated,
   Dimensions,
+  Image,
+  Alert,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import BottomSheet from "@gorhom/bottom-sheet";
@@ -19,9 +20,10 @@ import marker_icon from "../../assets/ic_Pin_big.png";
 import axios from "axios";
 import ActionSheet from "react-native-actionsheet";
 import CustomCallout from "../components/CustomCallout";
+import PharmacyCard from "../components/PharmacyCard";
 
 const { width, height } = Dimensions.get("window");
-const CARD_HEIGHT = 220;
+const CARD_HEIGHT = 200;
 const CARD_WIDTH = width * 0.8;
 const SPACING_FOR_CARD_INSET = width * 0.1 - 10;
 
@@ -79,12 +81,12 @@ const styles = StyleSheet.create({
     color: "#828282",
     fontSize: 16,
     width: 100,
-    marginLeft: 10,
+    marginLeft: 15,
   },
   icon: {
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 17,
+    marginLeft: 20,
     marginBottom: 5,
   },
   scrollView: {
@@ -162,7 +164,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   const [currentRegion, setCurrentRegion] = useState(null);
   const [pharmacies, setPharmacies] = useState([]);
 
-  const actionSheetRef = useRef(null);
+  const actionSheetRef = React.useRef(null);
   const optionArray = Platform.select({
     ios: ["Apple Haritalar", "Google Haritalar", "İptal"],
     android: ["Google Haritalar", "İptal"],
@@ -195,8 +197,8 @@ const ClosesPharmacyScreen = ({ navigation }) => {
           _map.current.animateToRegion(
             {
               ...coordinate,
-              latitudeDelta: pharmacyData.latitude,
-              longitudeDelta: pharmacyData.longitude,
+              latitudeDelta: 0.0922,
+              longitudeDelta: 0.0421,
             },
             350
           );
@@ -266,10 +268,13 @@ const ClosesPharmacyScreen = ({ navigation }) => {
         let lastLocation = await Location.getLastKnownPositionAsync();
         if (lastLocation) {
           setLocation(lastLocation);
+          console.log("Konumun latitude değeri:", lastLocation.coords.latitude);
+      console.log("Konumun longitude değeri:", lastLocation.coords.longitude);
           // return;
         } else {
           let location = await Location.getCurrentPositionAsync();
-          return setLocation(location);
+          return (setLocation(location))
+          
         }
 
         //dropdownda konumun seçili olarak gelmesi için kullandım ama çalışmadı
@@ -281,7 +286,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
         const city = addressInfo[0].city;
         const district = addressInfo[0].district;
         // Belirlenen il ve ilçeyi seçili olarak kaydettik
-        console.log("Seçilen Şehir: ", selectedCity);
+        // console.log("Seçilen Şehir: ", selectedCity);
         setSelectedCityId(city);
         setSelectedDistrictId(district);
       } catch (error) {
@@ -395,14 +400,35 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   };
 
   // Marker'a tıklama işlemi
-  const handleMarkerPress = (pharmacy) => {
-    setSelectedMarker(pharmacy);
+  const handleMarkerPress = async (pharmacy) => {
+    try {
+      const response = await axios.get(
+        `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyDetail?pharmacyId=${pharmacy.id}`
+      );
+
+      if (response.data.isSuccess) {
+        const pharmacyDetail = response.data.data;
+        const index = pharmacyData.findIndex((item) => item.id === pharmacy.id);
+        if (index !== -1) {
+          _scrollView.current.scrollTo({
+            x: index * (CARD_WIDTH + 20),
+            animated: true,
+          });
+        }
+      } else {
+        Alert.alert("Hata", response.data.errorMessage);
+      }
+    } catch (error) {
+      console.error("Hata:", error.message);
+      Alert.alert("Hata", "Bir hata oluştu. Lütfen tekrar deneyin.");
+    }
   };
 
   // Marker'ın açıklama kısmına tıklama işlemi
   const handleOpenInMaps = (latitude, longitude) => {
     const latLng = `${latitude},${longitude}`;
     let url = "";
+    console.log("HANDLE OPEN MAPS1-----", latLng);
 
     // iOS için
     if (Platform.OS === "ios") {
@@ -521,8 +547,17 @@ const ClosesPharmacyScreen = ({ navigation }) => {
               onCalloutPress={() =>
                 handleOpenInMaps(pharmacy.latitude, pharmacy.longitude)
               }
-              image={marker_icon}
+              onPress={() => {
+                console.log(
+                  "HANDLE MAKER PRESS---pharmacyName",
+                  pharmacy.pharmacyName
+                );
+                console.log("HANDLE MAKER PRESS---", pharmacy.latitude);
+                handleMarkerPress(pharmacy);
+              }}
+              // image={marker_icon}
             >
+              <Image source={marker_icon} style={{ width: 35, height: 50 }} />
               {Platform.OS === "ios" ? (
                 <CustomCallout
                   pharmacy={pharmacy}
@@ -558,21 +593,16 @@ const ClosesPharmacyScreen = ({ navigation }) => {
             { useNativeDriver: true }
           )}
         >
-          {pharmacyData.slice(0, 10).map((marker, index) => (
+          {pharmacyData.slice(0, 10).map((pharmacy, index) => (
             <View style={styles.card} key={index}>
-              {/* <Image
-                source={marker.image}
-                style={styles.cardImage}
-                resizeMode="cover"
-              /> */}
               <View style={styles.textContent}>
-                <Text numberOfLines={1} style={styles.cardtitle}>
-                  {marker.city}
-                </Text>
-                {/* <StarRating ratings={marker.rating} reviews={marker.reviews} /> */}
-                <Text numberOfLines={1} style={styles.cardDescription}>
-                  {marker.district}
-                </Text>
+                <View style={{ margin: 10, height: 90 }}>
+                  <Text style={{ fontWeight: "bold" }}>
+                    {" "}
+                    {pharmacy.pharmacyName}{" "}
+                  </Text>
+                  <Text> {pharmacy.address} </Text>
+                </View>
                 <View style={styles.cardButton}>
                   <TouchableOpacity
                     onPress={showActionSheet}
@@ -600,26 +630,35 @@ const ClosesPharmacyScreen = ({ navigation }) => {
                     title="Harita Seçiniz"
                     options={optionArray}
                     cancelButtonIndex={optionArray.length - 1}
-                    onPress={(index) => {
+                    onPress={(index,id) => {
                       const selectedOption = optionArray[index];
-                      if (selectedMarker) {
-                        const { latitude, longitude } = selectedMarker;
-                        if (
-                          selectedOption === "Apple Haritalar" &&
-                          Platform.OS === "ios"
-                        ) {
-                          openInAppleMaps(latitude, longitude);
-                        } else if (selectedOption === "Google Haritalar") {
-                          handleOpenInMaps(latitude, longitude);
-                        } else if (selectedOption === "İptal") {
-                          // İşlemi iptal et
-                        } else {
-                          // Geçersiz seçenek
-                          Alert.alert("Hata", "Geçersiz seçenek");
-                        }
+                      console.log("Tıklama İşlemi", pharmacyData.pharmacyID)
+                      if (
+                        selectedOption === "Apple Haritalar" &&
+                        Platform.OS === "ios"
+                      ) {
+                        handleOpenInMaps(pharmacy.latitude, pharmacy.longitude);
+                        console.log("Yol tarifindeki lat: ", pharmacy.latitude);
+                        console.log(
+                          "Yol tarifindeki lon: ",
+                          pharmacy.longitude
+                        );
+                        // Apple Haritalar'a yönlendirme yap
+                        // Örnek URL: 'http://maps.apple.com/?q=latitude,longitude'
+                      } else if (selectedOption === "Google Haritalar") {
+                        handleOpenInMaps(pharmacy.latitude, pharmacy.longitude);
+                        console.log("Yol tarifindeki lat: ", pharmacy.latitude);
+                        console.log(
+                          "Yol tarifindeki lon: ",
+                          pharmacy.longitude
+                        );
+                        // Google Haritalar'a yönlendirme yap
+                        // Örnek URL: 'https://www.google.com/maps/search/?api=1&query=latitude,longitude'
+                      } else if (selectedOption === "İptal") {
+                        // İşlemi iptal et
                       } else {
-                        // No selected marker
-                        console.error("No selected marker.");
+                        // Geçersiz seçenek
+                        Alert.alert("Hata", "Geçersiz seçenek");
                       }
                     }}
                   />

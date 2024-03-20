@@ -8,6 +8,7 @@ import SearchScreen from "./src/screens/SearchScreen";
 import ClosesPharmacyScreen from "./src/screens/ClosesPharmacyScreen";
 import AllPharmaciesScreen from "./src/screens/AllPharmaciesScreen";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import PharmacyCard from "./src/components/PharmacyCard";
 
 const Stack = createNativeStackNavigator();
 
@@ -19,6 +20,7 @@ export default function App() {
           <Stack.Screen name="En Yakın" component={ClosesPharmacyScreen} />
           <Stack.Screen name="Arama" component={SearchScreen} />
           <Stack.Screen name="Liste" component={AllPharmaciesScreen} />
+          <Stack.Screen name="Eczane Detay" component={PharmacyCard} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>
