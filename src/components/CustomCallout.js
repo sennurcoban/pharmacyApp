@@ -10,12 +10,16 @@ const CustomCallout = ({ handleOpenInMaps, pharmacy}) => {
       <View
         style={{
           width: Dimensions.get("window").width / 2,
-          paddingVertical: 10,
+          paddingVertical: 5,
           paddingHorizontal: 5,
+          flexDirection:"column"
         }}
       >
+        <Text numberOfLines={2} style={{ textAlign: "center", fontWeight:"bold" }}>
+        {pharmacy.pharmacyName}
+        </Text>
         <Text numberOfLines={2} style={{ textAlign: "center", }}>
-        {pharmacy.address},s {pharmacy.city}, {pharmacy.district}
+        {pharmacy.address}, {pharmacy.city}, {pharmacy.district}
         </Text>
       </View>
     </Callout>

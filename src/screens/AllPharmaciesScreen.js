@@ -10,6 +10,7 @@ import {
   Platform,
 } from "react-native";
 import ActionSheet from "react-native-actionsheet";
+import LinkHeader from "../components/LinkHeader";
 
 const AllPharmaciesScreen = ({ item }) => {
   const [pharmacies, setPharmacies] = useState([]);
@@ -71,6 +72,11 @@ const AllPharmaciesScreen = ({ item }) => {
     Linking.openURL(url).catch((err) =>
       console.error("Haritaları açarken hata oluştu:", err)
     );
+  };
+
+  const handleOpenCompanyWebsite = () => {
+    const url = `https://www.intimeinfo.com.tr/`;
+    Linking.openURL(url);
   };
 
   const renderPharmacyItem = ({ item }) => (
@@ -168,6 +174,7 @@ const AllPharmaciesScreen = ({ item }) => {
         keyExtractor={(item) => item.id.toString()}
         scrollEventThrottle={16}
       />
+      <LinkHeader onPress={handleOpenCompanyWebsite} />
     </View>
   );
 };

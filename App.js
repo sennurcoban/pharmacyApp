@@ -1,13 +1,9 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-
 import SearchScreen from "./src/screens/SearchScreen";
 import ClosesPharmacyScreen from "./src/screens/ClosesPharmacyScreen";
 import AllPharmaciesScreen from "./src/screens/AllPharmaciesScreen";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import PharmacyCard from "./src/components/PharmacyCard";
 
 const Stack = createNativeStackNavigator();

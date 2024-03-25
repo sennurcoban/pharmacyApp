@@ -20,7 +20,7 @@ import marker_icon from "../../assets/ic_Pin_big.png";
 import axios from "axios";
 import ActionSheet from "react-native-actionsheet";
 import CustomCallout from "../components/CustomCallout";
-import PharmacyCard from "../components/PharmacyCard";
+import LinkHeader from "../components/LinkHeader";
 
 const { width, height } = Dimensions.get("window");
 const CARD_HEIGHT = 200;
@@ -62,6 +62,7 @@ const styles = StyleSheet.create({
   tabbar: {
     // borderTopWidth: 1,
     // borderTopColor: '#ccc',
+    display:'flex',
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -144,6 +145,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
   },
+  headerContainer: {
+    position: "absolute",
+    zIndex: 10,
+    width:'100%', //google konuma gite tıklanmıyor 
+    top: 20,
+    left:0,
+    // paddingHorizontal: 10,
+  },
 });
 
 const ClosesPharmacyScreen = ({ navigation }) => {
@@ -159,12 +168,9 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   const [isCityFocus, setIsCityFocus] = useState(false);
   const [isDistrictFocus, setIsDistrictFocus] = useState(false);
   const [region, setRegion] = useState(null);
-  const [selectedMarker, setSelectedMarker] = useState(null);
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
-  const [currentRegion, setCurrentRegion] = useState(null);
-  const [pharmacies, setPharmacies] = useState([]);
 
-  const actionSheetRef = React.useRef(null);
+  const actionSheetRef = useRef(null);
   const optionArray = Platform.select({
     ios: ["Apple Haritalar", "Google Haritalar", "İptal"],
     android: ["Google Haritalar", "İptal"],
@@ -174,8 +180,12 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   let mapAnimation = new Animated.Value(0);
 
   const showActionSheet = () => {
-    actionSheetRef.current?.show();
+    actionSheetRef.current.show();
   };
+
+  useEffect(() => {
+    fetchPharmacies();
+  }, []);
 
   useEffect(() => {
     let regionTimeout;
@@ -233,6 +243,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
 
     _scrollView.current.scrollTo({ x: x, y: 0, animated: true });
   };
+
   const _map = React.useRef(null);
   const _scrollView = React.useRef(null);
 
@@ -255,49 +266,50 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     fetchCities();
   }, []);
 
-  // Konumu getir
-  useEffect(() => {
-    const getLocation = async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          setErrorMsg("Konum izni verilmedi");
-          return;
-        }
+  // // Konumu getir
+  // useEffect(() => {
+  //   const getLocation = async () => {
+  //     try {
+  //       let { status } = await Location.requestForegroundPermissionsAsync();
+  //       if (status !== "granted") {
+  //         setErrorMsg("Konum izni verilmedi");
+  //         return;
+  //       }
 
-        let lastLocation = await Location.getLastKnownPositionAsync();
-        if (lastLocation) {
-          setLocation(lastLocation);
-          console.log("Konumun latitude değeri:", lastLocation.coords.latitude);
-      console.log("Konumun longitude değeri:", lastLocation.coords.longitude);
-          // return;
-        } else {
-          let location = await Location.getCurrentPositionAsync();
-          return (setLocation(location))
-          
-        }
+  //       let lastLocation = await Location.getLastKnownPositionAsync();
+  //       if (lastLocation) {
+  //         setLocation(lastLocation);
+  //         console.log("Konumun latitude değeri:", lastLocation.coords.latitude);
+  //         console.log("Konumun longitude değeri:", lastLocation.coords.longitude);
+  //         // return;
+  //       } else {
+  //         let location = await Location.getCurrentPositionAsync();
+  //         return (setLocation(location))
 
-        //dropdownda konumun seçili olarak gelmesi için kullandım ama çalışmadı
-        const { latitude, longitude } = lastLocation.coords;
-        const addressInfo = await Location.reverseGeocodeAsync({
-          latitude,
-          longitude,
-        });
-        const city = addressInfo[0].city;
-        const district = addressInfo[0].district;
-        // Belirlenen il ve ilçeyi seçili olarak kaydettik
-        // console.log("Seçilen Şehir: ", selectedCity);
-        setSelectedCityId(city);
-        setSelectedDistrictId(district);
-      } catch (error) {
-        console.error("Konum alınamadı:", error.message);
-      }
-    };
+  //       }
 
-    getLocation();
-  }, []);
+  //       //dropdownda konumun seçili olarak gelmesi için kullandım ama çalışmadı
+  //       const { latitude, longitude } = lastLocation.coords;
+  //       const addressInfo = await Location.reverseGeocodeAsync({
+  //         latitude,
+  //         longitude,
+  //       });
+  //       const city = addressInfo[0].city;
+  //       const district = addressInfo[0].district;
+  //       // Belirlenen il ve ilçeyi seçili olarak kaydettik
+  //       // console.log("Seçilen Şehir: ", selectedCity);
+  //       setSelectedCityId(city);
+  //       setSelectedDistrictId(district);
+  //     } catch (error) {
+  //       console.error("Konum alınamadı:", error.message);
+  //     }
+  //   };
+
+  //   getLocation();
+  // }, []);
 
   // Konum değiştiğinde harita bölgesini güncelle
+
   useEffect(() => {
     if (location.coords) {
       const { latitude, longitude } = location.coords;
@@ -328,6 +340,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   // Şehir seçildiğinde ilçeleri getir
   const handleCitySelect = async (selectedCity) => {
     if (selectedCity) {
+      console.log("Seçilen Şehir:", selectedCity)
       setSelectedCityId(selectedCity.id);
       fetchDistricts(selectedCity.id);
     }
@@ -335,6 +348,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
 
   // İlçe seçildiğinde
   const handleDistrictSelect = (selectedDistrict) => {
+    console.log("Seçilen İlçe: ", selectedDistrict)
     setSelectedDistrict(selectedDistrict.label);
     setSelectedDistrictId(selectedDistrict.id);
   };
@@ -408,6 +422,8 @@ const ClosesPharmacyScreen = ({ navigation }) => {
 
       if (response.data.isSuccess) {
         const pharmacyDetail = response.data.data;
+        console.log("DEĞERLER: ", pharmacyDetail)
+
         const index = pharmacyData.findIndex((item) => item.id === pharmacy.id);
         if (index !== -1) {
           _scrollView.current.scrollTo({
@@ -445,81 +461,104 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     );
   };
 
-  const openInAppleMaps = (latitude, longitude) => {
-    const latLng = `${latitude},${longitude}`;
-    let url = "";
-    // iOS için
-    if (Platform.OS === "ios") {
-      url = `http://maps.apple.com/?q=${latLng}`;
-    }
-    // Android için
-    else if (Platform.OS === "android") {
-      url = `http://maps.google.com/?q=${latLng}`;
-    }
+  const handleGetDirections = (pharmacy) => {
+    // İlgili eczanenin latitude ve longitude bilgilerini al
+    const { latitude, longitude } = pharmacy;
 
-    // URL'yi aç
-    Linking.openURL(url).catch((err) =>
-      console.error("Haritaları açarken hata oluştu:", err)
-    );
-  };
-
-  const handleSearchButtonPress = () => {
-    console.log(
-      "Arama butonuna tıklandı. Bottom sheet durumu:",
-      bottomSheetVisible
-    );
-    if (!bottomSheetVisible) {
-      console.log("Bottom sheet açılıyor...");
-      setBottomSheetVisible(true); // Bottom sheet açılıyor
-    } else {
-      console.log("Bottom sheet kapanıyor...");
-      setBottomSheetVisible(false); // Bottom sheet kapanıyor
-    }
-  };
-
-  useEffect(() => {
-    const getCurrentLocation = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          console.error("Permission to access location was denied");
-          return;
+    // Yol tarifi almak için kullanıcıya seçenekler sun
+    ActionSheet.showActionSheetWithOptions(
+      {
+        options: Platform.select({
+          ios: ["Apple Maps", "Cancel"],
+          android: ["Google Maps", "Cancel"],
+        }),
+        cancelButtonIndex: 1, // Cancel seçeneği
+      },
+      (buttonIndex) => {
+        // Kullanıcının seçtiği harita uygulamasına göre yönlendirme yap
+        switch (buttonIndex) {
+          case 0: // Apple Maps
+            handleOpenInMaps(latitude, longitude);
+            break;
+          case 1: // Google Maps
+            handleOpenInMaps(latitude, longitude);
+            break;
+          default:
+            break;
         }
-
-        let lastLocation = await Location.getLastKnownPositionAsync();
-        if (lastLocation) return lastLocation;
-        else {
-          let location = await Location.getCurrentPositionAsync();
-          return location;
-        }
-      } catch (error) {
-        console.error(error);
       }
-    };
+    );
+  };
 
-    getCurrentLocation().then((location) => {
-      setCurrentRegion({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
-      });
-    });
-  }, []);
+  const handleOpenCompanyWebsite = () => {
+    const url = `https://www.intimeinfo.com.tr/`;
+    Linking.openURL(url);
+  };
 
-  useEffect(() => {
-    fetchPharmacies();
-  }, []);
+  // useEffect(() => {
+  //   const getCurrentLocation = async () => {
+  //     try {
+  //       const { status } = await Location.requestForegroundPermissionsAsync();
+  //       if (status !== "granted") {
+  //         console.error("Permission to access location was denied");
+  //         return;
+  //       }
+
+  //       let lastLocation = await Location.getLastKnownPositionAsync();
+  //       if (lastLocation) return lastLocation;
+  //       else {
+  //         let location = await Location.getCurrentPositionAsync();
+  //         return location;
+  //       }
+  //     } catch (error) {
+  //       console.error(error);
+  //     }
+  //   };
+
+  //   getCurrentLocation().then((location) => {
+  //     setCurrentRegion({
+  //       latitude: location.coords.latitude,
+  //       longitude: location.coords.longitude,
+  //       latitudeDelta: 0.0922,
+  //       longitudeDelta: 0.0421,
+  //     });
+  //   });
+  // }, []);
 
   const fetchPharmacies = async () => {
     try {
-      const response = await axios.get(
-        "https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation"
-      );
-      if (response.data?.isSuccess) {
-        setPharmacyData(response.data?.data);
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrorMsg("Konum izni verilmedi");
+        return;
+      }
+
+      let lastLocation = await Location.getLastKnownPositionAsync();
+      let location;
+      if (lastLocation) {
+        location = lastLocation;
       } else {
-        console.error("API Error:");
+        location = await Location.getCurrentPositionAsync();
+      }
+      // Kullanıcının konumunu al
+      const { latitude, longitude } = location.coords;
+
+      // Eczane API'sine istek yap
+      const response = await fetch(`https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?latitude=${latitude}&longitude=${longitude}`);
+
+      // Check if the request was successful (status code 200)
+      if (!response.ok) {
+        throw new Error("API Error: " + response.statusText);
+      }
+
+      // Extract JSON data from the response
+      const responseData = await response.json();
+
+      // Check if the API call was successful (based on your response structure)
+      if (responseData.isSuccess) {
+        setPharmacyData(responseData.data);
+      } else {
+        console.error("API Error:", responseData.errorMessage);
       }
     } catch (error) {
       console.error("Fetch Error:", error);
@@ -529,13 +568,16 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   return (
     <>
       <View style={styles.container}>
+        <View style={styles.headerContainer}>
+          <LinkHeader onPress={handleOpenCompanyWebsite} />
+        </View>
         <MapView
           showsUserLocation
           provider={PROVIDER_GOOGLE}
           style={styles.map}
           region={region}
         >
-          {pharmacyData.slice(0, 10).map((pharmacy) => (
+          {pharmacyData.map((pharmacy, index) => (
             <Marker
               key={pharmacy.id}
               coordinate={{
@@ -544,8 +586,8 @@ const ClosesPharmacyScreen = ({ navigation }) => {
               }}
               title={pharmacy.pharmacyName}
               description={`${pharmacy.address}, ${pharmacy.city}, ${pharmacy.district}`}
-              onCalloutPress={() =>
-                handleOpenInMaps(pharmacy.latitude, pharmacy.longitude)
+              onCalloutPress={(index) =>
+                handleGetDirections(index)
               }
               onPress={() => {
                 console.log(
@@ -555,14 +597,14 @@ const ClosesPharmacyScreen = ({ navigation }) => {
                 console.log("HANDLE MAKER PRESS---", pharmacy.latitude);
                 handleMarkerPress(pharmacy);
               }}
-              // image={marker_icon}
+            // // image={marker_icon}
             >
               <Image source={marker_icon} style={{ width: 35, height: 50 }} />
               {Platform.OS === "ios" ? (
                 <CustomCallout
                   pharmacy={pharmacy}
-                  handleOpenInMaps={() =>
-                    handleOpenInMaps(pharmacy.latitude, pharmacy.longitude)
+                  handleOpenInMaps={(index) =>
+                    handleGetDirections(index)
                   }
                 />
               ) : null}
@@ -593,8 +635,8 @@ const ClosesPharmacyScreen = ({ navigation }) => {
             { useNativeDriver: true }
           )}
         >
-          {pharmacyData.slice(0, 10).map((pharmacy, index) => (
-            <View style={styles.card} key={index}>
+          {pharmacyData.map((pharmacy) => (
+            <View style={styles.card} key={pharmacy.id}>
               <View style={styles.textContent}>
                 <View style={{ margin: 10, height: 90 }}>
                   <Text style={{ fontWeight: "bold" }}>
@@ -630,37 +672,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
                     title="Harita Seçiniz"
                     options={optionArray}
                     cancelButtonIndex={optionArray.length - 1}
-                    onPress={(index,id) => {
-                      const selectedOption = optionArray[index];
-                      console.log("Tıklama İşlemi", pharmacyData.pharmacyID)
-                      if (
-                        selectedOption === "Apple Haritalar" &&
-                        Platform.OS === "ios"
-                      ) {
-                        handleOpenInMaps(pharmacy.latitude, pharmacy.longitude);
-                        console.log("Yol tarifindeki lat: ", pharmacy.latitude);
-                        console.log(
-                          "Yol tarifindeki lon: ",
-                          pharmacy.longitude
-                        );
-                        // Apple Haritalar'a yönlendirme yap
-                        // Örnek URL: 'http://maps.apple.com/?q=latitude,longitude'
-                      } else if (selectedOption === "Google Haritalar") {
-                        handleOpenInMaps(pharmacy.latitude, pharmacy.longitude);
-                        console.log("Yol tarifindeki lat: ", pharmacy.latitude);
-                        console.log(
-                          "Yol tarifindeki lon: ",
-                          pharmacy.longitude
-                        );
-                        // Google Haritalar'a yönlendirme yap
-                        // Örnek URL: 'https://www.google.com/maps/search/?api=1&query=latitude,longitude'
-                      } else if (selectedOption === "İptal") {
-                        // İşlemi iptal et
-                      } else {
-                        // Geçersiz seçenek
-                        Alert.alert("Hata", "Geçersiz seçenek");
-                      }
-                    }}
+                    onPress={(index) => handleGetDirections(index)}
                   />
                 </View>
               </View>
