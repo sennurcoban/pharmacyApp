@@ -1,6 +1,7 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+
 import SearchScreen from "./src/screens/SearchScreen";
 import ClosesPharmacyScreen from "./src/screens/ClosesPharmacyScreen";
 import AllPharmaciesScreen from "./src/screens/AllPharmaciesScreen";

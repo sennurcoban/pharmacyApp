@@ -21,6 +21,7 @@ import axios from "axios";
 import ActionSheet from "react-native-actionsheet";
 import CustomCallout from "../components/CustomCallout";
 import LinkHeader from "../components/LinkHeader";
+import PharmacyCard from "../components/PharmacyCard";
 
 const { width, height } = Dimensions.get("window");
 const CARD_HEIGHT = 200;
@@ -149,7 +150,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     zIndex: 10,
     width:'100%', //google konuma gite tıklanmıyor 
-    top: 20,
+    top: 60,
     left:0,
     // paddingHorizontal: 10,
   },
@@ -440,6 +441,28 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     }
   };
 
+  // Yol Tarifi Al butonuna tıklama işlemi
+  const goToDirection = async (pharmacy) => {
+    try {
+      const response = await axios.get(
+        `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyDetail?pharmacyId=${pharmacy.id}`
+      );
+
+      if (response.data.isSuccess) {
+        const pharmacyDetail = response.data.data;
+        console.log("Pharmacy Name", pharmacyDetail.pharmacyName);
+        console.log("LATİTUDE DEĞER: ", pharmacyDetail.latitude)
+        console.log("LONGİTUDE DEĞER: ", pharmacyDetail.longitude)
+
+      } else {
+        Alert.alert("Hata", response.data.errorMessage);
+      }
+    } catch (error) {
+      console.error("Hata:", error.message);
+      Alert.alert("Hata", "Bir hata oluştu. Lütfen tekrar deneyin.");
+    }
+  };
+
   // Marker'ın açıklama kısmına tıklama işlemi
   const handleOpenInMaps = (latitude, longitude) => {
     const latLng = `${latitude},${longitude}`;
@@ -565,6 +588,46 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     }
   };
 
+  const handleDirection = async (pharmacyID) => {
+    try {
+      console.log("Tıklanan eczane ID:", pharmacyID);
+  
+      const response = await fetch(`https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyDetail?pharmacyId=${pharmacyID}`);
+      const data = await response.json();
+      console.log("API'den dönen veri:", data); // Dönen veriyi konsola yazdır
+  
+      if (data.isSuccess && data.data && data.data.latitude && data.data.longitude) {
+        const { latitude, longitude } = data.data;
+        ActionSheet.showActionSheetWithOptions(
+          {
+            options: Platform.select({
+              ios: ["Apple Maps", "Cancel"],
+              android: ["Google Maps", "Cancel"],
+            }),
+            cancelButtonIndex: 1, // Cancel seçeneği
+          },
+          (buttonIndex) => {
+            // Kullanıcının seçtiği harita uygulamasına göre yönlendirme yap
+            switch (buttonIndex) {
+              case 0: // Apple Maps
+                handleOpenInMaps(latitude, longitude);
+                break;
+              case 1: // Google Maps
+                handleOpenInMaps(latitude, longitude);
+                break;
+              default:
+                break;
+            }
+          }
+        );
+      } else {
+        console.error('Hata: Eczane bilgileri bulunamadı veya alınamadı');
+      }
+    } catch (error) {
+      console.error('Hata:', error);
+    }
+  };
+
   return (
     <>
       <View style={styles.container}>
@@ -636,48 +699,12 @@ const ClosesPharmacyScreen = ({ navigation }) => {
           )}
         >
           {pharmacyData.map((pharmacy) => (
-            <View style={styles.card} key={pharmacy.id}>
-              <View style={styles.textContent}>
-                <View style={{ margin: 10, height: 90 }}>
-                  <Text style={{ fontWeight: "bold" }}>
-                    {" "}
-                    {pharmacy.pharmacyName}{" "}
-                  </Text>
-                  <Text> {pharmacy.address} </Text>
-                </View>
-                <View style={styles.cardButton}>
-                  <TouchableOpacity
-                    onPress={showActionSheet}
-                    style={[
-                      styles.signIn,
-                      {
-                        borderColor: "#FF6347",
-                        borderWidth: 1,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.textSign,
-                        {
-                          color: "#FF6347",
-                        },
-                      ]}
-                    >
-                      Yol Tarifi Al
-                    </Text>
-                  </TouchableOpacity>
-                  <ActionSheet
-                    ref={actionSheetRef}
-                    title="Harita Seçiniz"
-                    options={optionArray}
-                    cancelButtonIndex={optionArray.length - 1}
-                    onPress={(index) => handleGetDirections(index)}
-                  />
-                </View>
-              </View>
-            </View>
-          ))}
+        <PharmacyCard
+          key={pharmacy.id}
+          pharmacy={pharmacy}
+          onPressDirection={handleDirection}
+        />
+      ))}
         </Animated.ScrollView>
       </View>
 
