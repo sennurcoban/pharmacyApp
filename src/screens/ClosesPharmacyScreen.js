@@ -12,7 +12,7 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import BottomSheet from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { Dropdown } from "react-native-element-dropdown";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
@@ -170,8 +170,9 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   const [isDistrictFocus, setIsDistrictFocus] = useState(false);
   const [region, setRegion] = useState(null);
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const [selectedMarker, setSelectedMarker] = useState(null);
 
-  const actionSheetRef = useRef(null);
+  const bottomSheetModalRef = useRef(null);
   const optionArray = Platform.select({
     ios: ["Apple Haritalar", "Google Haritalar", "İptal"],
     android: ["Google Haritalar", "İptal"],
@@ -180,8 +181,8 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   let mapIndex = 0;
   let mapAnimation = new Animated.Value(0);
 
-  const showActionSheet = () => {
-    actionSheetRef.current.show();
+  const handlePresentModalPress = () => {
+    bottomSheetModalRef.current?.present();
   };
 
   const { showActionSheetWithOptions } = useActionSheet();
@@ -251,6 +252,14 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   const _scrollView = React.useRef(null);
 
   useEffect(() => {
+    selectedMarker && scrollToIndex(selectedMarker);
+  }, [selectedMarker]);
+
+  const scrollToIndex = (index) => {
+    _scrollView.current?.scrollToIndex({ animated: true, index });
+  };
+
+  useEffect(() => {
     // Şehirleri getir
     const fetchCities = async () => {
       try {
@@ -268,7 +277,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     };
     fetchCities();
   }, []);
-  
+
   // Konum değiştiğinde harita bölgesini güncelle
   useEffect(() => {
     if (location.coords) {
@@ -328,31 +337,31 @@ const ClosesPharmacyScreen = ({ navigation }) => {
         alert("Lütfen önce şehir ve ilçe seçimi yapınız.");
         return;
       }
-  
+
       const cityName = selectedCity;
       const districtName = selectedDistrict;
-  
+
       const response = await axios.get(
         `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?CitiesName=${encodeURIComponent(
           cityName
         )}&DistrictName=${encodeURIComponent(districtName)}`
       );
-  
+
       const responseData = response.data.data;
-  
+
       if (responseData.length === 0) {
         alert("Seçilen bilgilere ait sonuç bulunamamıştır.");
         // console.log("Seçilen bilgilere ait sonuç bulunamamıştır.");
         return;
       }
-  
+
       setPharmacyData(responseData);
-      setBottomSheetVisible(true); // Bottom sheet'i aç
+      bottomSheetModalRef.current?.close();
     } catch (error) {
       console.error("Hata:", error.message);
       setPharmacyData([]);
     }
-  }; 
+  };
 
   // İlçe değiştiğinde ilçelere göre eczaneleri getir
   const fetchDistricts = async (cityId) => {
@@ -400,7 +409,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   const openInAppleMaps = (latitude, longitude) => {
     const latLng = `${latitude},${longitude}`;
     url = `http://maps.apple.com/?q=${latLng}`;
-    
+
     Linking.openURL(url).catch((err) =>
       console.error("Haritaları açarken hata oluştu:", err)
     );
@@ -409,7 +418,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   const openInGoogleMaps = (latitude, longitude) => {
     const latLng = `${latitude},${longitude}`;
     let url = `http://maps.google.com/?q=${latLng}`;
-  
+
     Linking.openURL(url).catch((err) =>
       console.error("Haritaları açarken hata oluştu:", err)
     );
@@ -423,11 +432,11 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   const handleDirection = async (pharmacyData) => {
     try {
       const { latitude, longitude } = pharmacyData;
-  
+
       const options = optionArray;
       const destructiveButtonIndex = 0;
       const cancelButtonIndex = 2;
-  
+
       showActionSheetWithOptions(
         {
           options,
@@ -437,7 +446,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
         (selectedIndex) => {
           const selectedOption = optionArray[selectedIndex];
           let selectedMapApp = "";
-  
+
           if (selectedOption === "Apple Haritalar" && Platform.OS === "ios") {
             selectedMapApp = "apple";
           } else if (selectedOption === "Google Haritalar") {
@@ -454,7 +463,6 @@ const ClosesPharmacyScreen = ({ navigation }) => {
       console.error("Hata:", error);
     }
   };
-  
 
   const fetchPharmacies = async () => {
     try {
@@ -507,8 +515,9 @@ const ClosesPharmacyScreen = ({ navigation }) => {
           style={styles.map}
           region={region}
         >
-          {pharmacyData.map((pharmacy) => (
+          {pharmacyData.map((pharmacy, index) => (
             <Marker
+              zIndex={index}
               key={pharmacy.id}
               coordinate={{
                 latitude: pharmacy.latitude,
@@ -523,7 +532,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
               {Platform.OS === "ios" ? (
                 <CustomCallout
                   pharmacy={pharmacy}
-                  handleOpenInMaps={()=> handleDirection(pharmacy)}
+                  handleOpenInMaps={() => handleDirection(pharmacy)}
                 />
               ) : null}
             </Marker>
@@ -566,7 +575,9 @@ const ClosesPharmacyScreen = ({ navigation }) => {
       <View style={styles.tabbar}>
         <TouchableOpacity
           style={styles.tabbarButton}
-          onPress={() => navigation.navigate("En Yakın")}
+          onPress={() => {
+            fetchPharmacies();
+          }}
         >
           <View style={{ flexDirection: "column" }}>
             <MaterialCommunityIcons
@@ -580,9 +591,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.tabbarButton}
-          onPress={() => {
-            setBottomSheetVisible(!bottomSheetVisible);
-          }}
+          onPress={handlePresentModalPress}
         >
           <View style={{ flexDirection: "column" }}>
             <Ionicons
@@ -596,7 +605,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.tabbarButton}
-          onPress={() => navigation.navigate("Liste")}
+          onPress={() => navigation.navigate("Tüm Nöbetçi Eczaneler")}
         >
           <View style={{ flexDirection: "column" }}>
             <Ionicons
@@ -609,8 +618,9 @@ const ClosesPharmacyScreen = ({ navigation }) => {
           </View>
         </TouchableOpacity>
       </View>
-      <BottomSheet
-        index={bottomSheetVisible ? 1 : -1}
+      <BottomSheetModal
+        ref={bottomSheetModalRef}
+        // index={bottomSheetVisible ? 1 : -1}
         snapPoints={["45%", "45%", "70%", "100"]}
         enablePanDownToClose
       >
@@ -677,7 +687,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
         </View>
-      </BottomSheet>
+      </BottomSheetModal>
     </>
   );
 };

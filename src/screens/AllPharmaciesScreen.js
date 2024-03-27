@@ -9,11 +9,13 @@ import {
   Linking,
   Platform,
 } from "react-native";
+import * as Location from "expo-location";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import LinkHeader from "../components/LinkHeader";
 
 const AllPharmaciesScreen = () => {
   const [pharmacies, setPharmacies] = useState([]);
+  const [pharmacyData, setPharmacyData] = useState([]);
 
   const optionArray = Platform.select({
     ios: ["Apple Haritalar", "Google Haritalar", "İptal"],
@@ -23,25 +25,80 @@ const AllPharmaciesScreen = () => {
   const { showActionSheetWithOptions } = useActionSheet();
 
   useEffect(() => {
-    fetchPharmacies();
+    fetchCloserPharmacies();
   }, []);
 
-  const fetchPharmacies = async () => {
+  const fetchCloserPharmacies = async () => {
     try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrorMsg("Konum izni verilmedi");
+        return;
+      }
+  
+      let lastLocation = await Location.getLastKnownPositionAsync();
+      let location;
+      if (lastLocation) {
+        location = lastLocation;
+      } else {
+        location = await Location.getCurrentPositionAsync();
+      }
+      
+      // Kullanıcının konumunu al
+      const { latitude, longitude } = location.coords;
+      console.log("Kullanıcı Konum Lat:", latitude);
+      console.log("Kullanıcı Konum Lon:", longitude);
+  
       const response = await fetch(
         "https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation"
       );
-      const data = await response.json();
-
-      // console.log(data)
-      if (data.isSuccess) {
-        setPharmacies(data.data);
+  
+      // Check if the request was successful (status code 200)
+      if (!response.ok) {
+        throw new Error("API Error: " + response.statusText);
+      }
+  
+      const responseData = await response.json();
+  
+      if (responseData.isSuccess) {
+        const pharmaciesWithDistance = responseData.data.map((pharmacy) => ({
+          ...pharmacy,
+          distance: calculateDistance(
+            latitude,
+            longitude,
+            pharmacy.latitude,
+            pharmacy.longitude
+          ),
+        }));
+        
+        pharmaciesWithDistance.sort((a, b) => a.distance - b.distance);
+  
+        // Sonuçları ayarla
+        setPharmacies(pharmaciesWithDistance);
       } else {
-        console.error("API Error:", data.errorMessage);
+        console.error("API Error:", responseData.errorMessage);
       }
     } catch (error) {
       console.error("Fetch Error:", error);
     }
+  };
+  
+  
+
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    // Haversine formülü kullanarak mesafeyi hesapla
+    const R = 6371; // Dünya yarıçapı kilometre cinsinden
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c; // Mesafe kilometre cinsinden
+    return distance;
   };
 
   const handleCallPharmacy = (phoneNumber) => {
@@ -104,7 +161,9 @@ const AllPharmaciesScreen = () => {
     } catch (error) {
       console.error("Hata:", error);
     }
-  };  
+  };
+
+  
 
   const renderPharmacyItem = ({ item }) => (
     <View
@@ -121,6 +180,7 @@ const AllPharmaciesScreen = () => {
       <View style={{ flexDirection: "column", width: 200 }}>
         <Text style={{ fontWeight: "bold" }}>{item.pharmacyName}</Text>
         <Text>{item.address}</Text>
+        <Text>{item.distance.toFixed(2)} km</Text>
       </View>
       <View
         style={{
@@ -163,20 +223,15 @@ const AllPharmaciesScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.pharmacies}>
-        <TouchableOpacity style={styles.allPharmacies}>
-          <Text style={{ color: "white" }}>Bütün Eczaneler</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.nightPharmacies}>
-          <Text style={{ color: "red" }}>Nöbetçi Eczaneler</Text>
-        </TouchableOpacity>
-      </View>
-      <FlatList
-        data={pharmacies}
-        renderItem={renderPharmacyItem}
-        keyExtractor={(item) => item.id.toString()}
-        scrollEventThrottle={16}
-      />
+      {pharmacies.length > 0 ? (
+        <FlatList
+          data={pharmacies}
+          renderItem={renderPharmacyItem}
+          keyExtractor={(item) => item.id.toString()}
+        />
+      ) : (
+        <Text>Eczaneler yükleniyor...</Text>
+      )}
       <LinkHeader onPress={handleOpenCompanyWebsite} />
     </View>
   );
@@ -188,7 +243,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     marginHorizontal: 15,
-    marginTop: 30,
   },
   pharmacies: {
     marginTop: 15,
