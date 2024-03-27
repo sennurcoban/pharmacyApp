@@ -9,24 +9,22 @@ import {
   Linking,
   Platform,
 } from "react-native";
-import ActionSheet from "react-native-actionsheet";
+import { useActionSheet } from "@expo/react-native-action-sheet";
 import LinkHeader from "../components/LinkHeader";
 
-const AllPharmaciesScreen = ({ item }) => {
+const AllPharmaciesScreen = () => {
   const [pharmacies, setPharmacies] = useState([]);
-  const actionSheetRef = useRef(null);
+
   const optionArray = Platform.select({
     ios: ["Apple Haritalar", "Google Haritalar", "İptal"],
     android: ["Google Haritalar", "İptal"],
   });
 
+  const { showActionSheetWithOptions } = useActionSheet();
+
   useEffect(() => {
     fetchPharmacies();
   }, []);
-
-  const showActionSheet = () => {
-    actionSheetRef.current?.show();
-  };
 
   const fetchPharmacies = async () => {
     try {
@@ -46,11 +44,6 @@ const AllPharmaciesScreen = ({ item }) => {
     }
   };
 
-  const handleOpenInMaps = (latitude, longitude) => {
-    const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-    Linking.openURL(url);
-  };
-
   const handleCallPharmacy = (phoneNumber) => {
     const url = `tel:${phoneNumber}`;
     Linking.openURL(url);
@@ -58,17 +51,17 @@ const AllPharmaciesScreen = ({ item }) => {
 
   const openInAppleMaps = (latitude, longitude) => {
     const latLng = `${latitude},${longitude}`;
-    let url = "";
-    // iOS için
-    if (Platform.OS === "ios") {
-      url = `http://maps.apple.com/?q=${latLng}`;
-    }
-    // Android için
-    else if (Platform.OS === "android") {
-      url = `http://maps.google.com/?q=${latLng}`;
-    }
+    url = `http://maps.apple.com/?q=${latLng}`;
+    
+    Linking.openURL(url).catch((err) =>
+      console.error("Haritaları açarken hata oluştu:", err)
+    );
+  };
 
-    // URL'yi aç
+  const openInGoogleMaps = (latitude, longitude) => {
+    const latLng = `${latitude},${longitude}`;
+    let url = `http://maps.google.com/?q=${latLng}`;
+  
     Linking.openURL(url).catch((err) =>
       console.error("Haritaları açarken hata oluştu:", err)
     );
@@ -78,6 +71,40 @@ const AllPharmaciesScreen = ({ item }) => {
     const url = `https://www.intimeinfo.com.tr/`;
     Linking.openURL(url);
   };
+
+  const handleDirection = async (selectedPharmacy) => {
+    try {
+      const { latitude, longitude } = selectedPharmacy;
+      const options = optionArray;
+      const destructiveButtonIndex = 0;
+      const cancelButtonIndex = 2;
+  
+      showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex,
+          destructiveButtonIndex,
+        },
+        (selectedIndex) => {
+          const selectedOption = optionArray[selectedIndex];
+          let selectedMapApp = "";
+  
+          if (selectedOption === "Apple Haritalar" && Platform.OS === "ios") {
+            selectedMapApp = "apple";
+          } else if (selectedOption === "Google Haritalar") {
+            selectedMapApp = "google";
+          }
+          if (selectedMapApp === "apple") {
+            openInAppleMaps(latitude, longitude);
+          } else if (selectedMapApp === "google") {
+            openInGoogleMaps(latitude, longitude);
+          }
+        }
+      );
+    } catch (error) {
+      console.error("Hata:", error);
+    }
+  };  
 
   const renderPharmacyItem = ({ item }) => (
     <View
@@ -103,8 +130,7 @@ const AllPharmaciesScreen = ({ item }) => {
         }}
       >
         <TouchableOpacity
-          // onPress={() => handleOpenInMaps(item.latitude, item.longitude)}
-          onPress={showActionSheet}
+          onPress={() => handleDirection(item)}
           style={{
             backgroundColor: "red",
             padding: 7,
@@ -117,29 +143,6 @@ const AllPharmaciesScreen = ({ item }) => {
         >
           <Ionicons name="location-sharp" size={24} color="white" />
         </TouchableOpacity>
-        <ActionSheet
-          ref={actionSheetRef}
-          title="Harita Seçiniz"
-          options={optionArray}
-          cancelButtonIndex={optionArray.length - 1}
-          onPress={(index) => {
-            const selectedOption = optionArray[index];
-            if (selectedOption === "Apple Haritalar" && Platform.OS === "ios") {
-              openInAppleMaps(item.latitude, item.longitude)
-              // Apple Haritalar'a yönlendirme yap
-              // Örnek URL: 'http://maps.apple.com/?q=latitude,longitude'
-            } else if (selectedOption === "Google Haritalar") {
-              handleOpenInMaps(item.latitude, item.longitude)
-              // Google Haritalar'a yönlendirme yap
-              // Örnek URL: 'https://www.google.com/maps/search/?api=1&query=latitude,longitude'
-            } else if (selectedOption === "İptal") {
-              // İşlemi iptal et
-            } else {
-              // Geçersiz seçenek
-              Alert.alert("Hata", "Geçersiz seçenek");
-            }
-          }}
-        />
         <TouchableOpacity
           onPress={() => handleCallPharmacy(item.phone)}
           style={{

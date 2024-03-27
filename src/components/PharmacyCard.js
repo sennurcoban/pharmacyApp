@@ -8,7 +8,7 @@ const SPACING_FOR_CARD_INSET = width * 0.1 - 10;
 
 const PharmacyCard = ({ pharmacy, onPressDirection }) => {
   const handleDirection = () => {
-    onPressDirection(pharmacy.pharmacyID);
+    onPressDirection(pharmacy);
   };
 
   return (

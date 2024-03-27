@@ -4,7 +4,6 @@ import { Callout } from 'react-native-maps';
 
 
 const CustomCallout = ({ handleOpenInMaps, pharmacy}) => {
-  
   return (
     <Callout onPress={handleOpenInMaps}>
       <View

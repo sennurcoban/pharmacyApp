@@ -87,7 +87,7 @@ const SearchScreen = () => {
         const city = addressInfo[0].city;
         const district = addressInfo[0].district;
         // Belirlenen il ve ilçeyi seçili olarak kaydettik
-        console.log("Seçilen Şehir: ", selectedCity);
+        // console.log("Seçilen Şehir: ", selectedCity);
         setSelectedCityId(city);
         setSelectedDistrictId(district);
       } catch (error) {
@@ -174,7 +174,7 @@ const SearchScreen = () => {
 
       if (responseData.length === 0) {
         alert("Seçilen bilgilere ait sonuç bulunamamıştır.");
-        console.log("Seçilen bilgilere ait sonuç bulunamamıştır.");
+        // console.log("Seçilen bilgilere ait sonuç bulunamamıştır.");
       } else {
         setPharmacyData(responseData);
       }

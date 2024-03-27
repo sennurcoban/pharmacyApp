@@ -40,11 +40,11 @@ const CustomMapView = ({ handleGetDirections, handleMarkerPress }) => {
                             handleGetDirections(index)
                         }
                         onPress={() => {
-                            console.log(
-                                "HANDLE MAKER PRESS---pharmacyName",
-                                pharmacy.pharmacyName
-                            );
-                            console.log("HANDLE MAKER PRESS---", pharmacy.latitude);
+                            // console.log(
+                            //     "HANDLE MAKER PRESS---pharmacyName",
+                            //     pharmacy.pharmacyName
+                            // );
+                            // console.log("HANDLE MAKER PRESS---", pharmacy.latitude);
                             handleMarkerPress(pharmacy);
                         }}
                     // // image={marker_icon}

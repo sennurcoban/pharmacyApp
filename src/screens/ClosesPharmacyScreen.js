@@ -18,7 +18,7 @@ import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
 import marker_icon from "../../assets/ic_Pin_big.png";
 import axios from "axios";
-import ActionSheet from "react-native-actionsheet";
+import { useActionSheet } from "@expo/react-native-action-sheet";
 import CustomCallout from "../components/CustomCallout";
 import LinkHeader from "../components/LinkHeader";
 import PharmacyCard from "../components/PharmacyCard";
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   tabbar: {
     // borderTopWidth: 1,
     // borderTopColor: '#ccc',
-    display:'flex',
+    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -149,9 +149,9 @@ const styles = StyleSheet.create({
   headerContainer: {
     position: "absolute",
     zIndex: 10,
-    width:'100%', //google konuma gite tıklanmıyor 
+    width: "100%", //google konuma gite tıklanmıyor
     top: 60,
-    left:0,
+    left: 0,
     // paddingHorizontal: 10,
   },
 });
@@ -183,6 +183,8 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   const showActionSheet = () => {
     actionSheetRef.current.show();
   };
+
+  const { showActionSheetWithOptions } = useActionSheet();
 
   useEffect(() => {
     fetchPharmacies();
@@ -266,51 +268,8 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     };
     fetchCities();
   }, []);
-
-  // // Konumu getir
-  // useEffect(() => {
-  //   const getLocation = async () => {
-  //     try {
-  //       let { status } = await Location.requestForegroundPermissionsAsync();
-  //       if (status !== "granted") {
-  //         setErrorMsg("Konum izni verilmedi");
-  //         return;
-  //       }
-
-  //       let lastLocation = await Location.getLastKnownPositionAsync();
-  //       if (lastLocation) {
-  //         setLocation(lastLocation);
-  //         console.log("Konumun latitude değeri:", lastLocation.coords.latitude);
-  //         console.log("Konumun longitude değeri:", lastLocation.coords.longitude);
-  //         // return;
-  //       } else {
-  //         let location = await Location.getCurrentPositionAsync();
-  //         return (setLocation(location))
-
-  //       }
-
-  //       //dropdownda konumun seçili olarak gelmesi için kullandım ama çalışmadı
-  //       const { latitude, longitude } = lastLocation.coords;
-  //       const addressInfo = await Location.reverseGeocodeAsync({
-  //         latitude,
-  //         longitude,
-  //       });
-  //       const city = addressInfo[0].city;
-  //       const district = addressInfo[0].district;
-  //       // Belirlenen il ve ilçeyi seçili olarak kaydettik
-  //       // console.log("Seçilen Şehir: ", selectedCity);
-  //       setSelectedCityId(city);
-  //       setSelectedDistrictId(district);
-  //     } catch (error) {
-  //       console.error("Konum alınamadı:", error.message);
-  //     }
-  //   };
-
-  //   getLocation();
-  // }, []);
-
+  
   // Konum değiştiğinde harita bölgesini güncelle
-
   useEffect(() => {
     if (location.coords) {
       const { latitude, longitude } = location.coords;
@@ -341,7 +300,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   // Şehir seçildiğinde ilçeleri getir
   const handleCitySelect = async (selectedCity) => {
     if (selectedCity) {
-      console.log("Seçilen Şehir:", selectedCity)
+      // console.log("Seçilen Şehir:", selectedCity);
       setSelectedCityId(selectedCity.id);
       fetchDistricts(selectedCity.id);
     }
@@ -349,7 +308,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
 
   // İlçe seçildiğinde
   const handleDistrictSelect = (selectedDistrict) => {
-    console.log("Seçilen İlçe: ", selectedDistrict)
+    // console.log("Seçilen İlçe: ", selectedDistrict);
     setSelectedDistrict(selectedDistrict.label);
     setSelectedDistrictId(selectedDistrict.id);
   };
@@ -365,38 +324,35 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   // Ara
   const handleSearch = async () => {
     try {
-      if (!selectedCityId) {
-        alert("Şehir seçimi yapılmamış.");
+      if (!selectedCityId || !selectedDistrictId) {
+        alert("Lütfen önce şehir ve ilçe seçimi yapınız.");
         return;
       }
-
-      if (!selectedDistrictId) {
-        alert("İlçe seçimi yapılmamış.");
-        return;
-      }
-
+  
       const cityName = selectedCity;
       const districtName = selectedDistrict;
-
+  
       const response = await axios.get(
         `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?CitiesName=${encodeURIComponent(
           cityName
         )}&DistrictName=${encodeURIComponent(districtName)}`
       );
-
+  
       const responseData = response.data.data;
-
+  
       if (responseData.length === 0) {
         alert("Seçilen bilgilere ait sonuç bulunamamıştır.");
-        console.log("Seçilen bilgilere ait sonuç bulunamamıştır.");
-      } else {
-        setPharmacyData(responseData);
+        // console.log("Seçilen bilgilere ait sonuç bulunamamıştır.");
+        return;
       }
+  
+      setPharmacyData(responseData);
+      setBottomSheetVisible(true); // Bottom sheet'i aç
     } catch (error) {
       console.error("Hata:", error.message);
       setPharmacyData([]);
     }
-  };
+  }; 
 
   // İlçe değiştiğinde ilçelere göre eczaneleri getir
   const fetchDistricts = async (cityId) => {
@@ -423,7 +379,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
 
       if (response.data.isSuccess) {
         const pharmacyDetail = response.data.data;
-        console.log("DEĞERLER: ", pharmacyDetail)
+        // console.log("DEĞERLER: ", pharmacyDetail);
 
         const index = pharmacyData.findIndex((item) => item.id === pharmacy.id);
         if (index !== -1) {
@@ -441,75 +397,21 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     }
   };
 
-  // Yol Tarifi Al butonuna tıklama işlemi
-  const goToDirection = async (pharmacy) => {
-    try {
-      const response = await axios.get(
-        `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyDetail?pharmacyId=${pharmacy.id}`
-      );
-
-      if (response.data.isSuccess) {
-        const pharmacyDetail = response.data.data;
-        console.log("Pharmacy Name", pharmacyDetail.pharmacyName);
-        console.log("LATİTUDE DEĞER: ", pharmacyDetail.latitude)
-        console.log("LONGİTUDE DEĞER: ", pharmacyDetail.longitude)
-
-      } else {
-        Alert.alert("Hata", response.data.errorMessage);
-      }
-    } catch (error) {
-      console.error("Hata:", error.message);
-      Alert.alert("Hata", "Bir hata oluştu. Lütfen tekrar deneyin.");
-    }
-  };
-
-  // Marker'ın açıklama kısmına tıklama işlemi
-  const handleOpenInMaps = (latitude, longitude) => {
+  const openInAppleMaps = (latitude, longitude) => {
     const latLng = `${latitude},${longitude}`;
-    let url = "";
-    console.log("HANDLE OPEN MAPS1-----", latLng);
-
-    // iOS için
-    if (Platform.OS === "ios") {
-      url = `http://maps.apple.com/?q=${latLng}`;
-    }
-    // Android için
-    else if (Platform.OS === "android") {
-      url = `http://maps.google.com/?q=${latLng}`;
-    }
-
-    // URL'yi aç
+    url = `http://maps.apple.com/?q=${latLng}`;
+    
     Linking.openURL(url).catch((err) =>
       console.error("Haritaları açarken hata oluştu:", err)
     );
   };
 
-  const handleGetDirections = (pharmacy) => {
-    // İlgili eczanenin latitude ve longitude bilgilerini al
-    const { latitude, longitude } = pharmacy;
-
-    // Yol tarifi almak için kullanıcıya seçenekler sun
-    ActionSheet.showActionSheetWithOptions(
-      {
-        options: Platform.select({
-          ios: ["Apple Maps", "Cancel"],
-          android: ["Google Maps", "Cancel"],
-        }),
-        cancelButtonIndex: 1, // Cancel seçeneği
-      },
-      (buttonIndex) => {
-        // Kullanıcının seçtiği harita uygulamasına göre yönlendirme yap
-        switch (buttonIndex) {
-          case 0: // Apple Maps
-            handleOpenInMaps(latitude, longitude);
-            break;
-          case 1: // Google Maps
-            handleOpenInMaps(latitude, longitude);
-            break;
-          default:
-            break;
-        }
-      }
+  const openInGoogleMaps = (latitude, longitude) => {
+    const latLng = `${latitude},${longitude}`;
+    let url = `http://maps.google.com/?q=${latLng}`;
+  
+    Linking.openURL(url).catch((err) =>
+      console.error("Haritaları açarken hata oluştu:", err)
     );
   };
 
@@ -518,35 +420,41 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     Linking.openURL(url);
   };
 
-  // useEffect(() => {
-  //   const getCurrentLocation = async () => {
-  //     try {
-  //       const { status } = await Location.requestForegroundPermissionsAsync();
-  //       if (status !== "granted") {
-  //         console.error("Permission to access location was denied");
-  //         return;
-  //       }
-
-  //       let lastLocation = await Location.getLastKnownPositionAsync();
-  //       if (lastLocation) return lastLocation;
-  //       else {
-  //         let location = await Location.getCurrentPositionAsync();
-  //         return location;
-  //       }
-  //     } catch (error) {
-  //       console.error(error);
-  //     }
-  //   };
-
-  //   getCurrentLocation().then((location) => {
-  //     setCurrentRegion({
-  //       latitude: location.coords.latitude,
-  //       longitude: location.coords.longitude,
-  //       latitudeDelta: 0.0922,
-  //       longitudeDelta: 0.0421,
-  //     });
-  //   });
-  // }, []);
+  const handleDirection = async (pharmacyData) => {
+    try {
+      const { latitude, longitude } = pharmacyData;
+  
+      const options = optionArray;
+      const destructiveButtonIndex = 0;
+      const cancelButtonIndex = 2;
+  
+      showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex,
+          destructiveButtonIndex,
+        },
+        (selectedIndex) => {
+          const selectedOption = optionArray[selectedIndex];
+          let selectedMapApp = "";
+  
+          if (selectedOption === "Apple Haritalar" && Platform.OS === "ios") {
+            selectedMapApp = "apple";
+          } else if (selectedOption === "Google Haritalar") {
+            selectedMapApp = "google";
+          }
+          if (selectedMapApp === "apple") {
+            openInAppleMaps(latitude, longitude);
+          } else if (selectedMapApp === "google") {
+            openInGoogleMaps(latitude, longitude);
+          }
+        }
+      );
+    } catch (error) {
+      console.error("Hata:", error);
+    }
+  };
+  
 
   const fetchPharmacies = async () => {
     try {
@@ -566,18 +474,17 @@ const ClosesPharmacyScreen = ({ navigation }) => {
       // Kullanıcının konumunu al
       const { latitude, longitude } = location.coords;
 
-      // Eczane API'sine istek yap
-      const response = await fetch(`https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?latitude=${latitude}&longitude=${longitude}`);
+      const response = await fetch(
+        `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?latitude=${latitude}&longitude=${longitude}`
+      );
 
       // Check if the request was successful (status code 200)
       if (!response.ok) {
         throw new Error("API Error: " + response.statusText);
       }
 
-      // Extract JSON data from the response
       const responseData = await response.json();
 
-      // Check if the API call was successful (based on your response structure)
       if (responseData.isSuccess) {
         setPharmacyData(responseData.data);
       } else {
@@ -585,46 +492,6 @@ const ClosesPharmacyScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error("Fetch Error:", error);
-    }
-  };
-
-  const handleDirection = async (pharmacyID) => {
-    try {
-      console.log("Tıklanan eczane ID:", pharmacyID);
-  
-      const response = await fetch(`https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyDetail?pharmacyId=${pharmacyID}`);
-      const data = await response.json();
-      console.log("API'den dönen veri:", data); // Dönen veriyi konsola yazdır
-  
-      if (data.isSuccess && data.data && data.data.latitude && data.data.longitude) {
-        const { latitude, longitude } = data.data;
-        ActionSheet.showActionSheetWithOptions(
-          {
-            options: Platform.select({
-              ios: ["Apple Maps", "Cancel"],
-              android: ["Google Maps", "Cancel"],
-            }),
-            cancelButtonIndex: 1, // Cancel seçeneği
-          },
-          (buttonIndex) => {
-            // Kullanıcının seçtiği harita uygulamasına göre yönlendirme yap
-            switch (buttonIndex) {
-              case 0: // Apple Maps
-                handleOpenInMaps(latitude, longitude);
-                break;
-              case 1: // Google Maps
-                handleOpenInMaps(latitude, longitude);
-                break;
-              default:
-                break;
-            }
-          }
-        );
-      } else {
-        console.error('Hata: Eczane bilgileri bulunamadı veya alınamadı');
-      }
-    } catch (error) {
-      console.error('Hata:', error);
     }
   };
 
@@ -640,7 +507,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
           style={styles.map}
           region={region}
         >
-          {pharmacyData.map((pharmacy, index) => (
+          {pharmacyData.map((pharmacy) => (
             <Marker
               key={pharmacy.id}
               coordinate={{
@@ -649,26 +516,14 @@ const ClosesPharmacyScreen = ({ navigation }) => {
               }}
               title={pharmacy.pharmacyName}
               description={`${pharmacy.address}, ${pharmacy.city}, ${pharmacy.district}`}
-              onCalloutPress={(index) =>
-                handleGetDirections(index)
-              }
-              onPress={() => {
-                console.log(
-                  "HANDLE MAKER PRESS---pharmacyName",
-                  pharmacy.pharmacyName
-                );
-                console.log("HANDLE MAKER PRESS---", pharmacy.latitude);
-                handleMarkerPress(pharmacy);
-              }}
-            // // image={marker_icon}
+              onCalloutPress={() => handleDirection(pharmacy)}
+              onPress={() => handleMarkerPress(pharmacy)}
             >
               <Image source={marker_icon} style={{ width: 35, height: 50 }} />
               {Platform.OS === "ios" ? (
                 <CustomCallout
                   pharmacy={pharmacy}
-                  handleOpenInMaps={(index) =>
-                    handleGetDirections(index)
-                  }
+                  handleOpenInMaps={()=> handleDirection(pharmacy)}
                 />
               ) : null}
             </Marker>
@@ -699,12 +554,12 @@ const ClosesPharmacyScreen = ({ navigation }) => {
           )}
         >
           {pharmacyData.map((pharmacy) => (
-        <PharmacyCard
-          key={pharmacy.id}
-          pharmacy={pharmacy}
-          onPressDirection={handleDirection}
-        />
-      ))}
+            <PharmacyCard
+              key={pharmacy.id}
+              pharmacy={pharmacy}
+              onPressDirection={handleDirection}
+            />
+          ))}
         </Animated.ScrollView>
       </View>
 

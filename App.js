@@ -6,12 +6,14 @@ import SearchScreen from "./src/screens/SearchScreen";
 import ClosesPharmacyScreen from "./src/screens/ClosesPharmacyScreen";
 import AllPharmaciesScreen from "./src/screens/AllPharmaciesScreen";
 import PharmacyCard from "./src/components/PharmacyCard";
+import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <ActionSheetProvider>
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="En Yakın" component={ClosesPharmacyScreen} />
@@ -20,6 +22,7 @@ export default function App() {
           <Stack.Screen name="Eczane Detay" component={PharmacyCard} />
         </Stack.Navigator>
       </NavigationContainer>
+      </ActionSheetProvider>
     </GestureHandlerRootView>
   );
 }
