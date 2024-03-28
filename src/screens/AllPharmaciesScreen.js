@@ -35,7 +35,7 @@ const AllPharmaciesScreen = () => {
         setErrorMsg("Konum izni verilmedi");
         return;
       }
-  
+
       let lastLocation = await Location.getLastKnownPositionAsync();
       let location;
       if (lastLocation) {
@@ -43,23 +43,23 @@ const AllPharmaciesScreen = () => {
       } else {
         location = await Location.getCurrentPositionAsync();
       }
-      
+
       // Kullanıcının konumunu al
       const { latitude, longitude } = location.coords;
       console.log("Kullanıcı Konum Lat:", latitude);
       console.log("Kullanıcı Konum Lon:", longitude);
-  
+
       const response = await fetch(
         "https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation"
       );
-  
+
       // Check if the request was successful (status code 200)
       if (!response.ok) {
         throw new Error("API Error: " + response.statusText);
       }
-  
+
       const responseData = await response.json();
-  
+
       if (responseData.isSuccess) {
         const pharmaciesWithDistance = responseData.data.map((pharmacy) => ({
           ...pharmacy,
@@ -70,9 +70,9 @@ const AllPharmaciesScreen = () => {
             pharmacy.longitude
           ),
         }));
-        
+
         pharmaciesWithDistance.sort((a, b) => a.distance - b.distance);
-  
+
         // Sonuçları ayarla
         setPharmacies(pharmaciesWithDistance);
       } else {
@@ -82,8 +82,6 @@ const AllPharmaciesScreen = () => {
       console.error("Fetch Error:", error);
     }
   };
-  
-  
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     // Haversine formülü kullanarak mesafeyi hesapla
@@ -109,7 +107,7 @@ const AllPharmaciesScreen = () => {
   const openInAppleMaps = (latitude, longitude) => {
     const latLng = `${latitude},${longitude}`;
     url = `http://maps.apple.com/?q=${latLng}`;
-    
+
     Linking.openURL(url).catch((err) =>
       console.error("Haritaları açarken hata oluştu:", err)
     );
@@ -118,7 +116,7 @@ const AllPharmaciesScreen = () => {
   const openInGoogleMaps = (latitude, longitude) => {
     const latLng = `${latitude},${longitude}`;
     let url = `http://maps.google.com/?q=${latLng}`;
-  
+
     Linking.openURL(url).catch((err) =>
       console.error("Haritaları açarken hata oluştu:", err)
     );
@@ -135,7 +133,7 @@ const AllPharmaciesScreen = () => {
       const options = optionArray;
       const destructiveButtonIndex = 0;
       const cancelButtonIndex = 2;
-  
+
       showActionSheetWithOptions(
         {
           options,
@@ -145,7 +143,7 @@ const AllPharmaciesScreen = () => {
         (selectedIndex) => {
           const selectedOption = optionArray[selectedIndex];
           let selectedMapApp = "";
-  
+
           if (selectedOption === "Apple Haritalar" && Platform.OS === "ios") {
             selectedMapApp = "apple";
           } else if (selectedOption === "Google Haritalar") {
@@ -162,8 +160,6 @@ const AllPharmaciesScreen = () => {
       console.error("Hata:", error);
     }
   };
-
-  
 
   const renderPharmacyItem = ({ item }) => (
     <View
@@ -230,7 +226,9 @@ const AllPharmaciesScreen = () => {
           keyExtractor={(item) => item.id.toString()}
         />
       ) : (
-        <Text>Eczaneler yükleniyor...</Text>
+        <View style={styles.loading}>
+          <Text>Eczaneler yükleniyor...</Text>
+        </View>
       )}
       <LinkHeader onPress={handleOpenCompanyWebsite} />
     </View>
@@ -269,4 +267,7 @@ const styles = StyleSheet.create({
     width: 150,
     alignItems: "center",
   },
+  loading:{
+    alignItems:"center",
+  }
 });
