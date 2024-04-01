@@ -1,5 +1,5 @@
 import { FontAwesome6, Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,6 @@ import LinkHeader from "../components/LinkHeader";
 
 const AllPharmaciesScreen = () => {
   const [pharmacies, setPharmacies] = useState([]);
-  const [pharmacyData, setPharmacyData] = useState([]);
 
   const optionArray = Platform.select({
     ios: ["Apple Haritalar", "Google Haritalar", "İptal"],
@@ -44,7 +43,6 @@ const AllPharmaciesScreen = () => {
         location = await Location.getCurrentPositionAsync();
       }
 
-      // Kullanıcının konumunu al
       const { latitude, longitude } = location.coords;
       console.log("Kullanıcı Konum Lat:", latitude);
       console.log("Kullanıcı Konum Lon:", longitude);
@@ -53,7 +51,6 @@ const AllPharmaciesScreen = () => {
         "https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation"
       );
 
-      // Check if the request was successful (status code 200)
       if (!response.ok) {
         throw new Error("API Error: " + response.statusText);
       }
@@ -72,8 +69,6 @@ const AllPharmaciesScreen = () => {
         }));
 
         pharmaciesWithDistance.sort((a, b) => a.distance - b.distance);
-
-        // Sonuçları ayarla
         setPharmacies(pharmaciesWithDistance);
       } else {
         console.error("API Error:", responseData.errorMessage);

@@ -1,3 +1,5 @@
+// bottomnavbar butona dönüştürüldüğü için bu sayfa hiçbir yerde kullanılmadı
+
 import React, { useState, useEffect } from "react";
 import {
   View,

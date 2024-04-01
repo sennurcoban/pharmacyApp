@@ -1,27 +1,70 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import React from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+  Pressable,
+} from "react-native";
+import { FontAwesome6, Ionicons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
 const CARD_HEIGHT = 200;
 const CARD_WIDTH = width * 0.8;
 const SPACING_FOR_CARD_INSET = width * 0.1 - 10;
 
-const PharmacyCard = ({ pharmacy, onPressDirection }) => {
+const PharmacyCard = ({ pharmacy, onPressDirection, onClickPhone }) => {
   const handleDirection = () => {
     onPressDirection(pharmacy);
+  };
+  const handlePhoneCall = () => {
+    onClickPhone(pharmacy);
   };
 
   return (
     <View style={styles.card} key={pharmacy.id}>
       <View style={styles.textContent}>
-        <View style={{ margin: 10, height: 90 }}>
-          <Text style={{ fontWeight: "bold" }}>
-            {pharmacy.pharmacyName}
-          </Text>
+        <View
+          style={{ height: 90, alignItems: "center", justifyContent: "center" }}
+        >
+          <Text style={{ fontWeight: "bold" }}>{pharmacy.pharmacyName}</Text>
           <Text>{pharmacy.address}</Text>
         </View>
+        <View
+            style={{
+              flexDirection: "row",
+              height:50,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <TouchableOpacity
+              onPress={handlePhoneCall}
+              style={{
+                backgroundColor: "#4CE5B1",
+                borderRadius: 20,
+                width: 40,
+                height: 40,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 10,
+              }}
+            >
+              <FontAwesome6 name="phone" size={18} color="white" />
+            </TouchableOpacity>
+            <Text
+              style={{
+                marginStart: 10,
+                height:25
+              }}
+            >
+              {pharmacy.phone}
+            </Text>
+          </View>
+          
         <View style={styles.cardButton}>
-          <TouchableOpacity
+        <TouchableOpacity
             onPress={handleDirection}
             style={[
               styles.signIn,
@@ -42,6 +85,7 @@ const PharmacyCard = ({ pharmacy, onPressDirection }) => {
               Yol Tarifi Al
             </Text>
           </TouchableOpacity>
+         
         </View>
       </View>
     </View>
@@ -85,7 +129,7 @@ const styles = StyleSheet.create({
   tabbar: {
     // borderTopWidth: 1,
     // borderTopColor: '#ccc',
-    display:'flex',
+    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -154,8 +198,8 @@ const styles = StyleSheet.create({
     color: "#444",
   },
   cardButton: {
+    flexDirection: "column",
     alignItems: "center",
-    marginTop: 5,
   },
   signIn: {
     width: "100%",
@@ -171,9 +215,9 @@ const styles = StyleSheet.create({
   headerContainer: {
     position: "absolute",
     zIndex: 10,
-    width:'100%', //google konuma gite tıklanmıyor 
+    width: "100%", //google konuma gite tıklanmıyor
     top: 60,
-    left:0,
+    left: 0,
     // paddingHorizontal: 10,
   },
-})
+});
