@@ -615,8 +615,8 @@ const ClosesPharmacyScreen = ({ navigation }) => {
                   latitude: pharmacy.latitude,
                   longitude: pharmacy.longitude,
                 }}
-                // title={pharmacy.pharmacyName}
-                // description={`${pharmacy.address}, ${pharmacy.city}, ${pharmacy.district} `}
+                title={pharmacy.pharmacyName}
+                description={`${pharmacy.address}, ${pharmacy.city}, ${pharmacy.district} `}
                 onCalloutPress={() => handleDirection(pharmacy)}
                 onPress={() => handleMarkerPress(pharmacy)}
               >
@@ -634,16 +634,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
                     onClickPhone={handleCallPharmacy}
                     handleOpenInMaps={() => handleDirection(pharmacy)}
                   />
-                ) : (
-                  selectedMarkerIndex === index && ( // Render callout component only if this marker is selected
-                    <CustomMarkerCallout
-                      pharmacy={pharmacy}
-                      onPressDirection={handleDirection}
-                      onClickPhone={handleCallPharmacy}
-                      handleOpenInMaps={() => handleDirection(pharmacy)}
-                    />
-                  )
-                )}
+                ) : null}
               </Marker>
             );
           })}
