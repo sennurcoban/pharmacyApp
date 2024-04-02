@@ -1,43 +1,38 @@
 import React from "react";
-import { View, Text, Dimensions, TouchableOpacity } from "react-native";
-import { Callout, CalloutSubview } from "react-native-maps";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+  TouchableWithoutFeedback,
+} from "react-native";
 import { FontAwesome6, Ionicons } from "@expo/vector-icons";
 
-const CustomCallout = ({ pharmacy,onPressDirection, onClickPhone }) => {
+const CustomMarkerCallout = ({ pharmacy, onPressDirection, onClickPhone }) => {
   const handleDirection = () => {
     onPressDirection(pharmacy);
   };
   const handlePhoneCall = () => {
     onClickPhone(pharmacy);
   };
-
   return (
-    <Callout
-    key={pharmacy.id}
-    tooltip
-      style={{
-        backgroundColor:"#fff",
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: "row",
-        borderRadius:10,
-        width: Dimensions.get("window").width * 0.75,
-      }}
-    >
+    <TouchableWithoutFeedback>
+    <View key={pharmacy.id} style={styles.container}>
       <View
         style={{
-          width: Dimensions.get("window").width * 0.70,
+          width: Dimensions.get("window").width * 0.7,
           flexDirection: "row",
         }}
       >
         <View
           style={{
             flexDirection: "column",
-            margin:5
+            margin: 5,
           }}
         >
-          <CalloutSubview onPress={handleDirection}>
           <TouchableOpacity
+            onPress={handleDirection}
             style={{
               backgroundColor: "red",
               padding: 7,
@@ -51,10 +46,9 @@ const CustomCallout = ({ pharmacy,onPressDirection, onClickPhone }) => {
           >
             <Ionicons name="location-sharp" size={20} color="white" />
           </TouchableOpacity>
-          </CalloutSubview>
-          
-          <CalloutSubview onPress={handlePhoneCall}>
+
           <TouchableOpacity
+            onClickPhone={handlePhoneCall}
             style={{
               backgroundColor: "#4CE5B1",
               borderRadius: 20,
@@ -66,7 +60,6 @@ const CustomCallout = ({ pharmacy,onPressDirection, onClickPhone }) => {
           >
             <FontAwesome6 name="phone" size={20} color="white" />
           </TouchableOpacity>
-          </CalloutSubview>
         </View>
         <View
           style={{
@@ -75,16 +68,39 @@ const CustomCallout = ({ pharmacy,onPressDirection, onClickPhone }) => {
             justifyContent: "center",
           }}
         >
-          <Text numberOfLines={2} style={{ textAlign: "center", fontWeight: "bold" }}>
-            {pharmacy.pharmacyName}
-          </Text>
-          <Text numberOfLines={4} style={{ textAlign: "center",width:220 }}>
-            {pharmacy.address}, {pharmacy.city}, {pharmacy.district}
-          </Text>
+          <Text style={styles.title}>{pharmacy.pharmacyName}</Text>
+          <Text>{`${pharmacy.address}, ${pharmacy.city}, ${pharmacy.district}`}</Text>
         </View>
       </View>
-    </Callout>
+    </View>
+    </TouchableWithoutFeedback>
   );
 };
 
-export default CustomCallout;
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    borderRadius: 10,
+    width: Dimensions.get("window").width * 0.75,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  button: {
+    marginTop: 5,
+    backgroundColor: "blue",
+    padding: 10,
+    borderRadius: 5,
+  },
+  buttonText: {
+    color: "white",
+    textAlign: "center",
+  },
+});
+
+export default CustomMarkerCallout;

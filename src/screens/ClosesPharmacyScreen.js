@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -10,7 +10,11 @@ import {
   Dimensions,
   Alert,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  Ionicons,
+  MaterialCommunityIcons,
+  FontAwesome,
+} from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { Dropdown } from "react-native-element-dropdown";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
@@ -22,6 +26,7 @@ import { useActionSheet } from "@expo/react-native-action-sheet";
 import CustomCallout from "../components/CustomCallout";
 import LinkHeader from "../components/LinkHeader";
 import PharmacyCard from "../components/PharmacyCard";
+import CustomMarkerCallout from "../components/CustomMarkerCallout";
 
 const { width, height } = Dimensions.get("window");
 const CARD_HEIGHT = 200;
@@ -37,6 +42,7 @@ const styles = StyleSheet.create({
   },
   map: {
     ...StyleSheet.absoluteFillObject,
+    width: "100%",
   },
   placeholderStyle: {
     fontWeight: "200",
@@ -69,7 +75,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: 70,
     position: "absolute",
-    bottom: 30,
+    bottom: Platform.OS === "ios" ? 40 : 30,
     paddingBottom: 0,
     right: 16,
     left: 16,
@@ -151,6 +157,17 @@ const styles = StyleSheet.create({
     top: 60,
     left: 0,
   },
+  locationButton: {
+    position: "absolute",
+    bottom:
+      Platform.OS === "ios"
+        ? Dimensions.get("window").height * 0.4
+        : Dimensions.get("window").height * 0.45,
+    left: Dimensions.get("window").width * 0.8,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 15,
+  },
 });
 
 const ClosesPharmacyScreen = ({ navigation }) => {
@@ -167,6 +184,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   const [region, setRegion] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [selectedMarkerIndex, setSelectedMarkerIndex] = useState(null);
+  const snapPoints = useMemo(() => ["45%", "53%", "70%", "100"], []);
 
   const bottomSheetModalRef = useRef(null);
   const optionArray = Platform.select({
@@ -193,7 +211,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     setSelectedMarkerIndex(index);
   };
 
-  // useEffect kullanarak haritayı güncelleyin
+  // haritayı güncelleme
   useEffect(() => {
     if (selectedMarkerIndex !== null && pharmacyData[selectedMarkerIndex]) {
       const { latitude, longitude } = pharmacyData[selectedMarkerIndex];
@@ -248,23 +266,12 @@ const ClosesPharmacyScreen = ({ navigation }) => {
 
     const scale = mapAnimation.interpolate({
       inputRange,
-      outputRange: [0.5, 0.75, 0.5],
+      outputRange: [0.6, 0.75, 0.6],
       extrapolate: "clamp",
     });
 
     return { scale };
   });
-
-  const onMarkerPress = (mapEventData) => {
-    const markerID = mapEventData._targetInst.return.index;
-
-    let x = markerID * CARD_WIDTH + markerID * 20;
-    if (Platform.OS === "ios") {
-      x = x - SPACING_FOR_CARD_INSET;
-    }
-
-    _scrollView.current.scrollTo({ x: x, y: 0, animated: true });
-  };
 
   const _map = React.useRef(null);
   const _scrollView = React.useRef(null);
@@ -508,9 +515,68 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     }
   };
 
+  const getUserLocation = async () => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrorMsg("Konum izni verilmedi");
+        return;
+      }
+
+      let lastLocation = await Location.getLastKnownPositionAsync();
+      let location;
+      if (lastLocation) {
+        location = lastLocation;
+      } else {
+        location = await Location.getCurrentPositionAsync();
+      }
+      // Kullanıcının konumunu al
+      const { latitude, longitude } = location.coords;
+      _map.current.animateToRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      });
+    } catch (error) {
+      console.error("Fetch Error:", error);
+    }
+  };
+
   const handleCallPharmacy = (pharmacyData) => {
     const url = `tel:${pharmacyData.phone}`;
     Linking.openURL(url);
+  };
+
+  // useEffect(() => {
+  //   if (selectedMarkerIndex !== null && pharmacyData[selectedMarkerIndex]) {
+  //     const { latitude, longitude } = pharmacyData[selectedMarkerIndex];
+  //     _map.current.animateToRegion(
+  //       {
+  //         latitude,
+  //         longitude,
+  //         latitudeDelta: 0.0922,
+  //         longitudeDelta: 0.0421,
+  //       },
+  //       350
+  //     );
+  //   }
+  // }, [selectedMarkerIndex, pharmacyData]);
+
+  const goToMyLocation = () => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        _map.current.animateToRegion({
+          latitude,
+          longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        });
+      },
+      (error) => console.log(error),
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+    );
   };
 
   return (
@@ -521,11 +587,12 @@ const ClosesPharmacyScreen = ({ navigation }) => {
         </View>
         <MapView
           showsUserLocation
+          showsMyLocationButton={true}
           provider={PROVIDER_GOOGLE}
           style={styles.map}
           region={region}
           ref={_map}
-          initialRegion={region}
+          // initialRegion={region}
         >
           {pharmacyData.map((pharmacy, index) => {
             const scaleStyle = {
@@ -548,8 +615,8 @@ const ClosesPharmacyScreen = ({ navigation }) => {
                   latitude: pharmacy.latitude,
                   longitude: pharmacy.longitude,
                 }}
-                title={pharmacy.pharmacyName}
-                description={`${pharmacy.address}, ${pharmacy.city}, ${pharmacy.district} `}
+                // title={pharmacy.pharmacyName}
+                // description={`${pharmacy.address}, ${pharmacy.city}, ${pharmacy.district} `}
                 onCalloutPress={() => handleDirection(pharmacy)}
                 onPress={() => handleMarkerPress(pharmacy)}
               >
@@ -567,11 +634,29 @@ const ClosesPharmacyScreen = ({ navigation }) => {
                     onClickPhone={handleCallPharmacy}
                     handleOpenInMaps={() => handleDirection(pharmacy)}
                   />
-                ) : null}
+                ) : (
+                  selectedMarkerIndex === index && ( // Render callout component only if this marker is selected
+                    <CustomMarkerCallout
+                      pharmacy={pharmacy}
+                      onPressDirection={handleDirection}
+                      onClickPhone={handleCallPharmacy}
+                      handleOpenInMaps={() => handleDirection(pharmacy)}
+                    />
+                  )
+                )}
               </Marker>
             );
           })}
         </MapView>
+        <View style={styles.locationButton}>
+          <TouchableOpacity
+            onPress={() => {
+              getUserLocation();
+            }}
+          >
+            <FontAwesome name="location-arrow" size={24} color="blue" />
+          </TouchableOpacity>
+        </View>
         <Animated.ScrollView
           ref={_scrollView}
           horizontal
@@ -610,7 +695,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
         <TouchableOpacity
           style={styles.tabbarButton}
           onPress={() => {
-            fetchPharmacies();
+            getUserLocation();
           }}
         >
           <View style={{ flexDirection: "column" }}>
@@ -654,7 +739,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
       </View>
       <BottomSheetModal
         ref={bottomSheetModalRef}
-        snapPoints={["57%", "45%", "70%", "100"]}
+        snapPoints={snapPoints}
         enablePanDownToClose
       >
         <View>

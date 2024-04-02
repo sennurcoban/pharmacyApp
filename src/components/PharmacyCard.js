@@ -31,29 +31,30 @@ const PharmacyCard = ({ pharmacy, onPressDirection, onClickPhone }) => {
           <Text style={{ fontWeight: "bold" }}>{pharmacy.pharmacyName}</Text>
           <Text>{pharmacy.address}</Text>
         </View>
-        <View
+        
+            <TouchableOpacity
+              onPress={handlePhoneCall}
+              style={[
+                styles.signIn,
+                {
+                  backgroundColor: "#4CE5B1",
+                  borderWidth: 0.5,
+                // width: 40,
+                // height: 40,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 10,
+                },
+              ]}
+            >
+              <View
             style={{
               flexDirection: "row",
-              height:50,
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <TouchableOpacity
-              onPress={handlePhoneCall}
-              style={{
-                backgroundColor: "#4CE5B1",
-                borderRadius: 20,
-                width: 40,
-                height: 40,
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 10,
-              }}
-            >
-              <FontAwesome6 name="phone" size={18} color="white" />
-            </TouchableOpacity>
-            <Text
+              <FontAwesome6 name="phone" size={18} color="white" /><Text
               style={{
                 marginStart: 10,
                 height:25
@@ -61,7 +62,9 @@ const PharmacyCard = ({ pharmacy, onPressDirection, onClickPhone }) => {
             >
               {pharmacy.phone}
             </Text>
-          </View>
+            </View>
+            </TouchableOpacity>
+            
           
         <View style={styles.cardButton}>
         <TouchableOpacity
