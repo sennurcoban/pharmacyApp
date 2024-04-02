@@ -338,7 +338,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     setDistricts([]);
     setSelectedCityId("");
     setSelectedDistrictId("");
-    setPharmacyData([]);
+    // setPharmacyData([]);
   };
 
   // Ara
@@ -686,7 +686,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
         <TouchableOpacity
           style={styles.tabbarButton}
           onPress={() => {
-            getUserLocation();
+            fetchPharmacies();
           }}
         >
           <View style={{ flexDirection: "column" }}>
