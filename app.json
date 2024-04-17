@@ -2,7 +2,7 @@
   "expo": {
     "name": "Intime Eczane",
     "slug": "pharmacyApp",
-    "version": "1.0.3",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -31,7 +31,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "versionCode": 2,
+      "versionCode": 3,
       "package": "com.developerintime.pharmacyApp",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",

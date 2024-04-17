@@ -1,4 +1,4 @@
-rootProject.name = 'pharmacyApp'
+rootProject.name = 'Intime Eczane'
 
 dependencyResolutionManagement {
   versionCatalogs {
