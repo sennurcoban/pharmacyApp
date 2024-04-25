@@ -2,7 +2,7 @@
   "expo": {
     "name": "Intime Eczane",
     "slug": "pharmacyApp",
-    "version": "1.0.5",
+    "version": "1.0.8",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -18,26 +18,41 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Pharmacy App to use your location."
+          "locationAlwaysAndWhenInUsePermission": "Uygulama içindeki nöbetçi eczane bilgilerini harita üzerinde görebilmek için ve mevcut adres bilginizi alabilmemiz için konum izni verin."
         }
       ]
     ],
     "ios": {
+      "config": {
+        "googleMapsApiKey": "AIzaSyBLMZFVI6bNA_8_VBMFLXV8eY8hZ98GqA8"
+      },
       "supportsTablet": false,
-      "bundleIdentifier": "com.developerintime.pharmacyApp"
+      "bundleIdentifier": "com.developerintime.pharmacyApp",
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "tr",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Uygulama içindeki işlemlerde mevcut adres bilginizi alabilmemiz için konum izni verin.",
+        "NSLocationWhenInUseUsageDescription": "Uygulama içindeki işlemlerde mevcut adres bilginizi alabilmemiz için konum izni verin.",
+        "NSLocationAlwaysUsageDescription": "Uygulama içindeki işlemlerde mevcut adres bilginizi alabilmemiz için konum izni verin.",
+        "NSLocationUsageDescription": "Uygulama içindeki işlemlerde mevcut adres bilginizi alabilmemiz için konum izni verin."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "versionCode": 3,
+      "versionCode": 5,
       "package": "com.developerintime.pharmacyApp",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.FOREGROUND_SERVICE"
-      ]
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAB7KTQCV-bowDBiQGIAhPKPcc6cNTIj5Y"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"

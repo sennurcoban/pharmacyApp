@@ -202,8 +202,19 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   const { showActionSheetWithOptions } = useActionSheet();
 
   useEffect(() => {
-    fetchPharmacies();
+    const fetchDataAfterPermission = async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        fetchPharmacies();
+      }
+    };
+
+    fetchDataAfterPermission();
   }, []);
+
+  // useEffect(() => {
+  //   fetchPharmacies();
+  // }, []);
 
   const handleScroll = (event) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
@@ -493,7 +504,9 @@ const ClosesPharmacyScreen = ({ navigation }) => {
         location = await Location.getCurrentPositionAsync();
       }
       // Kullanıcının konumunu al
-      const { latitude, longitude } = location.coords;
+      const { latitude, longitude } = location.coords; 
+      console.log("Kullanıcının latitude değeri",latitude);
+      console.log("Kullanıcının longitude değeri",longitude);
 
       const response = await fetch(
         `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?latitude=${latitude}&longitude=${longitude}`
