@@ -2,7 +2,7 @@
   "expo": {
     "name": "Intime Eczane",
     "slug": "pharmacyApp",
-    "version": "1.0.8",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -20,14 +20,15 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Uygulama içindeki nöbetçi eczane bilgilerini harita üzerinde görebilmek için ve mevcut adres bilginizi alabilmemiz için konum izni verin."
         }
-      ]
+      ] 
     ],
     "ios": {
       "config": {
-        "googleMapsApiKey": "AIzaSyBLMZFVI6bNA_8_VBMFLXV8eY8hZ98GqA8"
+        "googleMapsApiKey": "AIzaSyA5vzmdoF6hHsjduMcIKgeHNUATDbaiUlo"
       },
       "supportsTablet": false,
       "bundleIdentifier": "com.developerintime.pharmacyApp",
+      "buildNumber": "1",
       "infoPlist": {
         "CFBundleDevelopmentRegion": "tr",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Uygulama içindeki işlemlerde mevcut adres bilginizi alabilmemiz için konum izni verin.",
@@ -41,7 +42,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "versionCode": 5,
+      "versionCode": 8,
       "package": "com.developerintime.pharmacyApp",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -50,7 +51,7 @@
       ],
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyAB7KTQCV-bowDBiQGIAhPKPcc6cNTIj5Y"
+          "apiKey": "AIzaSyB0XXtPMNEwthLjjZH5tB5z7Y3vmfjb8zw"
         }
       }
     },
