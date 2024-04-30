@@ -26,7 +26,6 @@ import { useActionSheet } from "@expo/react-native-action-sheet";
 import CustomCallout from "../components/CustomCallout";
 import LinkHeader from "../components/LinkHeader";
 import PharmacyCard from "../components/PharmacyCard";
-import CustomMarkerCallout from "../components/CustomMarkerCallout";
 
 const { width, height } = Dimensions.get("window");
 const CARD_HEIGHT = 200;
@@ -67,8 +66,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   tabbar: {
-    // borderTopWidth: 1,
-    // borderTopColor: '#ccc',
     display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
@@ -83,13 +80,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#333333",
   },
   tabbarButton: {
-    padding: 10,
+    // padding: 10,
+    margin:20
+  },
+  tabbarContent: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   tabbarText: {
     color: "#828282",
     fontSize: 16,
-    width: 100,
-    marginLeft: 15,
+    marginLeft: 5,
   },
   icon: {
     justifyContent: "center",
@@ -103,52 +104,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingVertical: 10,
-  },
-  card: {
-    elevation: 2,
-    backgroundColor: "#FFF",
-    borderRadius: 15,
-    marginHorizontal: 10,
-    shadowColor: "#000",
-    shadowRadius: 5,
-    shadowOpacity: 0.3,
-    shadowOffset: { x: 2, y: -2 },
-    height: CARD_HEIGHT,
-    width: CARD_WIDTH,
-    overflow: "hidden",
-  },
-  cardImage: {
-    flex: 3,
-    width: "100%",
-    height: "100%",
-    alignSelf: "center",
-  },
-  textContent: {
-    flex: 2,
-    padding: 10,
-  },
-  cardtitle: {
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  cardDescription: {
-    fontSize: 12,
-    color: "#444",
-  },
-  cardButton: {
-    alignItems: "center",
-    marginTop: 5,
-  },
-  signIn: {
-    width: "100%",
-    padding: 5,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 10,
-  },
-  textSign: {
-    fontSize: 14,
-    fontWeight: "bold",
   },
   headerContainer: {
     position: "absolute",
@@ -184,7 +139,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   const [region, setRegion] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [selectedMarkerIndex, setSelectedMarkerIndex] = useState(null);
-  const snapPoints = useMemo(() => ["45%", "53%", "70%", "100"], []);
+  const snapPoints = useMemo(() => ["50%", "60%", "70%", "100"], []);
 
   const bottomSheetModalRef = useRef(null);
   const optionArray = Platform.select({
@@ -212,9 +167,15 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     fetchDataAfterPermission();
   }, []);
 
+  //İstanbulu seçili olarak getiren fonksiyon
   // useEffect(() => {
-  //   fetchPharmacies();
-  // }, []);
+  //   if (cities.length > 0) {
+  //     const istanbulCity = cities.find(city => city.label === "İstanbul");
+  //     if (istanbulCity) {
+  //       setSelectedCityId(istanbulCity.id);
+  //     }
+  //   }
+  // }, [cities]);
 
   const handleScroll = (event) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
@@ -306,7 +267,9 @@ const ClosesPharmacyScreen = ({ navigation }) => {
           id: city.id,
           label: city.ad,
         }));
-        setCities(cityData);
+        // Şehirleri filtrele ve sadece İstanbul'u içeren veriyi al
+        const istanbulData = cityData.filter((city) => city.id === 34);
+        setCities(istanbulData);
       } catch (error) {
         console.error("Hata:", error.message);
       }
@@ -374,7 +337,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
       if (responseData.length === 0) {
         setTimeout(() => {
           alert("Seçilen bilgilere ait sonuç bulunamamıştır.");
-        }, 1000);
+        }, 100);
         // console.log("Seçilen bilgilere ait sonuç bulunamamıştır.");
         return;
       }
@@ -490,6 +453,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
 
   const fetchPharmacies = async () => {
     try {
+      // Kullanıcının konumunu al
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         setErrorMsg("Konum izni verilmedi");
@@ -503,13 +467,12 @@ const ClosesPharmacyScreen = ({ navigation }) => {
       } else {
         location = await Location.getCurrentPositionAsync();
       }
-      // Kullanıcının konumunu al
-      const { latitude, longitude } = location.coords; 
-      console.log("Kullanıcının latitude değeri",latitude);
-      console.log("Kullanıcının longitude değeri",longitude);
+      const userLatitude = location.coords.latitude;
+      const userLongitude = location.coords.longitude;
 
+      // Eczaneleri API'den al
       const response = await fetch(
-        `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?latitude=${latitude}&longitude=${longitude}`
+        `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?latitude=${userLatitude}&longitude=${userLongitude}`
       );
 
       if (!response.ok) {
@@ -520,12 +483,51 @@ const ClosesPharmacyScreen = ({ navigation }) => {
 
       if (responseData.isSuccess) {
         setPharmacyData(responseData.data);
+
+        // En yakın eczaneyi bul
+        let minDistance = Infinity;
+        let nearestPharmacyIndex = null;
+        responseData.data.forEach((pharmacy, index) => {
+          const distance = calculateDistance(
+            userLatitude,
+            userLongitude,
+            pharmacy.latitude,
+            pharmacy.longitude
+          );
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearestPharmacyIndex = index;
+          }
+        });
+
+        // En yakın eczaneyi mavi renkte işaretle
+        setSelectedMarkerIndex(nearestPharmacyIndex);
       } else {
         console.error("API Error:", responseData.errorMessage);
       }
     } catch (error) {
       console.error("Fetch Error:", error);
     }
+  };
+
+  // Haversine formülü ile iki nokta arasındaki mesafeyi hesapla
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Yeryüzü'nün ortalama yarıçapı (km)
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(deg2rad(lat1)) *
+        Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c; // Mesafe km cinsinden
+    return d;
+  };
+
+  const deg2rad = (deg) => {
+    return deg * (Math.PI / 180);
   };
 
   const getUserLocation = async () => {
@@ -561,37 +563,6 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     Linking.openURL(url);
   };
 
-  // useEffect(() => {
-  //   if (selectedMarkerIndex !== null && pharmacyData[selectedMarkerIndex]) {
-  //     const { latitude, longitude } = pharmacyData[selectedMarkerIndex];
-  //     _map.current.animateToRegion(
-  //       {
-  //         latitude,
-  //         longitude,
-  //         latitudeDelta: 0.0922,
-  //         longitudeDelta: 0.0421,
-  //       },
-  //       350
-  //     );
-  //   }
-  // }, [selectedMarkerIndex, pharmacyData]);
-
-  const goToMyLocation = () => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        _map.current.animateToRegion({
-          latitude,
-          longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        });
-      },
-      (error) => console.log(error),
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
-    );
-  };
-
   return (
     <>
       <View style={styles.container}>
@@ -605,7 +576,6 @@ const ClosesPharmacyScreen = ({ navigation }) => {
           style={styles.map}
           region={region}
           ref={_map}
-          // initialRegion={region}
         >
           {pharmacyData.map((pharmacy, index) => {
             const scaleStyle = {
