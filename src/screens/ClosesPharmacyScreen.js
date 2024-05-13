@@ -169,6 +169,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
 
   //İstanbulu seçili olarak getiren fonksiyon
   /////
+  /////
   // useEffect(() => {
   //   if (cities.length > 0) {
   //     const istanbulCity = cities.find(city => city.label === "İstanbul");
