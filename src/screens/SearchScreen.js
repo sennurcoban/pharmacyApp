@@ -19,11 +19,12 @@ import MapView, { Marker, PROVIDER_GOOGLE, Circle } from "react-native-maps";
 import axios from "axios";
 import CustomCallout from "../components/CustomCallout";
 import marker_icon from "../../assets/ic_Pin_big.png";
+import API from "../api/Enpoints";
 
 const { width, height } = Dimensions.get("window");
 // Eczaneleri kart şekline dnüştürürsem eğer
 const CARD_HEIGHT = height / 4;
-const CARD_WIDTH = CARD_HEIGHT -50;
+const CARD_WIDTH = CARD_HEIGHT - 50;
 
 const Tab = createBottomTabNavigator();
 
@@ -46,9 +47,7 @@ const SearchScreen = () => {
     // Şehirleri getir
     const fetchCities = async () => {
       try {
-        const response = await axios.get(
-          "https://eczaneapi.intimeinfo.net/api/Eczane/GetCities"
-        );
+        const response = await API.getCities();
         const cityData = response.data.data.map((city) => ({
           id: city.id,
           label: city.ad,
@@ -166,11 +165,7 @@ const SearchScreen = () => {
       const cityName = selectedCity;
       const districtName = selectedDistrict;
 
-      const response = await axios.get(
-        `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?CitiesName=${encodeURIComponent(
-          cityName
-        )}&DistrictName=${encodeURIComponent(districtName)}`
-      );
+      const response = await API.getPharmaciesByCityAndDistrict(cityName, districtName);
 
       const responseData = response.data.data;
 
@@ -189,9 +184,7 @@ const SearchScreen = () => {
   // İlçe değiştiğinde ilçelere göre eczaneleri getir
   const fetchDistricts = async (cityId) => {
     try {
-      const response = await axios.get(
-        `https://eczaneapi.intimeinfo.net/api/Eczane/GetDistrinct?CitiesId=${cityId}`
-      );
+      const response = await API.getDistricts(cityId);
       const districtData = response.data.data.map((district) => ({
         id: district.id,
         label: district.ad,

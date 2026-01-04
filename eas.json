@@ -14,10 +14,8 @@
   },
   "submit": {
     "production": {
-      "ios":{
-        "appleId": "developer@intimeinfo.com.tr",
-        "ascAppId": "6497951693",
-        "appleTeamId": "W6P74829UT"
+      "ios": {
+        "bundleIdentifier": "com.pharmacyapp.fresh"
       }
     }
   }

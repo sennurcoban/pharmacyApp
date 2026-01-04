@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import * as Location from "expo-location";
 import { useActionSheet } from "@expo/react-native-action-sheet";
-import LinkHeader from "../components/LinkHeader";
+import API from "../api/Enpoints";
 
 const AllPharmaciesScreen = () => {
   const [pharmacies, setPharmacies] = useState([]);
@@ -47,15 +47,15 @@ const AllPharmaciesScreen = () => {
       console.log("Kullanıcı Konum Lat:", latitude);
       console.log("Kullanıcı Konum Lon:", longitude);
 
-      const response = await fetch(
-        "https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation"
-      );
+      const response = await API.getAllPharmacies();
 
-      if (!response.ok) {
+      // const responseData = await response.json(); // API wrapper returns axios response with data in .data
+      const responseData = response.data;
+
+      // if (!response.ok) adaptation checking status
+      if (response.status !== 200) {
         throw new Error("API Error: " + response.statusText);
       }
-
-      const responseData = await response.json();
 
       if (responseData.isSuccess) {
         const pharmaciesWithDistance = responseData.data.map((pharmacy) => ({
@@ -86,9 +86,9 @@ const AllPharmaciesScreen = () => {
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(lat1 * (Math.PI / 180)) *
-        Math.cos(lat2 * (Math.PI / 180)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c; // Mesafe kilometre cinsinden
     return distance;
@@ -117,10 +117,7 @@ const AllPharmaciesScreen = () => {
     );
   };
 
-  const handleOpenCompanyWebsite = () => {
-    const url = `https://www.intimeinfo.com.tr/`;
-    Linking.openURL(url);
-  };
+
 
   const handleDirection = async (selectedPharmacy) => {
     try {
@@ -225,7 +222,7 @@ const AllPharmaciesScreen = () => {
           <Text>Eczaneler yükleniyor...</Text>
         </View>
       )}
-      <LinkHeader onPress={handleOpenCompanyWebsite} />
+      {/* Footer or other content can go here */}
     </View>
   );
 };
@@ -262,7 +259,7 @@ const styles = StyleSheet.create({
     width: 150,
     alignItems: "center",
   },
-  loading:{
-    alignItems:"center",
+  loading: {
+    alignItems: "center",
   }
 });

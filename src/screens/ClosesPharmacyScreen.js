@@ -24,8 +24,8 @@ import marker_blue_icon from "../../assets/blue_marker.png";
 import axios from "axios";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import CustomCallout from "../components/CustomCallout";
-import LinkHeader from "../components/LinkHeader";
 import PharmacyCard from "../components/PharmacyCard";
+import API from "../api/Enpoints";
 
 const { width, height } = Dimensions.get("window");
 const CARD_HEIGHT = 200;
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   },
   tabbarButton: {
     // padding: 10,
-    margin:20
+    margin: 20
   },
   tabbarContent: {
     flexDirection: "row",
@@ -261,16 +261,12 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     // Şehirleri getir
     const fetchCities = async () => {
       try {
-        const response = await axios.get(
-          "https://eczaneapi.intimeinfo.net/api/Eczane/GetCities"
-        );
+        const response = await API.getCities();
         const cityData = response.data.data.map((city) => ({
           id: city.id,
           label: city.ad,
         }));
-        // Şehirleri filtrele ve sadece İstanbul'u içeren veriyi al
-        const istanbulData = cityData.filter((city) => city.id === 34);
-        setCities(istanbulData);
+        setCities(cityData);
       } catch (error) {
         console.error("Hata:", error.message);
       }
@@ -297,6 +293,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     if (selectedCity) {
       // console.log("Seçilen Şehir:", selectedCity);
       setSelectedCityId(selectedCity.id);
+      setSelectedCity(selectedCity.label);
       fetchDistricts(selectedCity.id);
     }
   };
@@ -327,11 +324,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
       const cityName = selectedCity;
       const districtName = selectedDistrict;
 
-      const response = await axios.get(
-        `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?CitiesName=${encodeURIComponent(
-          cityName
-        )}&DistrictName=${encodeURIComponent(districtName)}`
-      );
+      const response = await API.getPharmaciesByCityAndDistrict(cityName, districtName);
 
       const responseData = response.data.data;
 
@@ -354,9 +347,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   // İlçe değiştiğinde ilçelere göre eczaneleri getir
   const fetchDistricts = async (cityId) => {
     try {
-      const response = await axios.get(
-        `https://eczaneapi.intimeinfo.net/api/Eczane/GetDistrinct?CitiesId=${cityId}`
-      );
+      const response = await API.getDistricts(cityId);
       const districtData = response.data.data.map((district) => ({
         id: district.id,
         label: district.ad,
@@ -370,9 +361,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   // Marker'a tıklama işlemi
   const handleMarkerPress = async (pharmacy) => {
     try {
-      const response = await axios.get(
-        `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyDetail?pharmacyId=${pharmacy.id}`
-      );
+      const response = await API.getPharmacyDetail(pharmacy.id);
 
       if (response.data.isSuccess) {
         const pharmacyDetail = response.data.data;
@@ -412,10 +401,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     );
   };
 
-  const handleOpenCompanyWebsite = () => {
-    const url = `https://www.intimeinfo.com.tr/`;
-    Linking.openURL(url);
-  };
+
 
   const handleDirection = async (pharmacyData) => {
     try {
@@ -468,19 +454,50 @@ const ClosesPharmacyScreen = ({ navigation }) => {
       } else {
         location = await Location.getCurrentPositionAsync();
       }
+      // Kullanıcının konumunu al
       const userLatitude = location.coords.latitude;
       const userLongitude = location.coords.longitude;
 
-      // Eczaneleri API'den al
-      const response = await fetch(
-        `https://eczaneapi.intimeinfo.net/api/Eczane/GetPharmacyInformation?latitude=${userLatitude}&longitude=${userLongitude}`
-      );
+      // Konuma odaklan
+      setRegion({
+        latitude: userLatitude,
+        longitude: userLongitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      });
 
-      if (!response.ok) {
+      // Reverse Geocoding to get City/District
+      let city = null;
+      let district = null;
+      try {
+        const reverseGeocode = await Location.reverseGeocodeAsync({
+          latitude: userLatitude,
+          longitude: userLongitude
+        });
+
+        if (reverseGeocode && reverseGeocode.length > 0) {
+          const address = reverseGeocode[0];
+          // console.log("Adres: ", address);
+          // In Turkey: region usually is City (e.g. Istanbul), subregion is District (e.g. Besiktas)
+          city = address.region || address.city || "İstanbul";
+          district = address.subregion || address.district;
+        }
+      } catch (geoError) {
+        console.error("Reverse Geocode Error", geoError);
+      }
+
+      // Eczaneleri API'den al (Şehir ve İlçe ile)
+      const response = await API.getPharmacies(userLatitude, userLongitude, city, district);
+
+      // if (!response.ok) handled by axios catch usually, or we check response.status
+      if (response.status !== 200) {
         throw new Error("API Error: " + response.statusText);
       }
 
-      const responseData = await response.json();
+      const responseData = response.data;
+
+      // const responseData = await response.json(); // API wrapper returns parsed data in axios 'data' prop
+      // responseData variable is already set above from response.data
 
       if (responseData.isSuccess) {
         setPharmacyData(responseData.data);
@@ -519,9 +536,9 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(deg2rad(lat1)) *
-        Math.cos(deg2rad(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
+      Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const d = R * c; // Mesafe km cinsinden
     return d;
@@ -568,7 +585,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
     <>
       <View style={styles.container}>
         <View style={styles.headerContainer}>
-          <LinkHeader onPress={handleOpenCompanyWebsite} />
+          {/* LinkHeader removed */}
         </View>
         <MapView
           showsUserLocation
@@ -607,7 +624,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
                 <Animated.View style={[styles.markerWrap]}>
                   <Animated.Image
                     source={markerIcon}
-                    style={[styles.marker, scaleStyle]}
+                    style={[styles.marker, scaleStyle, { width: 35, height: 35 }]}
                     resizeMode="cover"
                   />
                 </Animated.View>
