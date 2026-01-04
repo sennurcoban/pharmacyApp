@@ -19,8 +19,8 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { Dropdown } from "react-native-element-dropdown";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
-import marker_icon from "../../assets/ic_Pin_big.png";
-import marker_blue_icon from "../../assets/blue_marker.png";
+import marker_icon from "../../assets/ic_Pin.png";
+import marker_blue_icon from "../../assets/marker.png";
 import axios from "axios";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import CustomCallout from "../components/CustomCallout";
@@ -66,9 +66,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   tabbar: {
-    display: "flex",
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-around", // Changed from space-between to space-around for better spacing
     alignItems: "center",
     height: 70,
     position: "absolute",
@@ -80,8 +79,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#333333",
   },
   tabbarButton: {
-    // padding: 10,
-    margin: 20
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   tabbarContent: {
     flexDirection: "row",
@@ -89,14 +89,13 @@ const styles = StyleSheet.create({
   },
   tabbarText: {
     color: "#828282",
-    fontSize: 16,
-    marginLeft: 5,
+    fontSize: 12,
+    marginTop: 2,
+    textAlign: "center",
   },
   icon: {
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 20,
-    marginBottom: 5,
+    alignSelf: "center",
+    marginBottom: 2,
   },
   scrollView: {
     position: "absolute",
@@ -114,14 +113,23 @@ const styles = StyleSheet.create({
   },
   locationButton: {
     position: "absolute",
-    bottom:
-      Platform.OS === "ios"
-        ? Dimensions.get("window").height * 0.4
-        : Dimensions.get("window").height * 0.45,
-    left: Dimensions.get("window").width * 0.8,
+    bottom: 280, // Positioned above the cards (Adjusted for card height + margins)
+    right: 20,
     backgroundColor: "white",
-    borderRadius: 20,
-    padding: 15,
+    borderRadius: 30, // Half of width/height makes it circular
+    width: 60,
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 999, // Ensure it's clickable and on top
   },
 });
 
@@ -192,8 +200,8 @@ const ClosesPharmacyScreen = ({ navigation }) => {
         {
           latitude,
           longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
+          latitudeDelta: 0.0122,
+          longitudeDelta: 0.0121,
         },
         350
       );
@@ -281,8 +289,8 @@ const ClosesPharmacyScreen = ({ navigation }) => {
       const newRegion = {
         latitude: initialLocation.latitude,
         longitude: initialLocation.longitude,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
+        latitudeDelta: 0.0122,
+        longitudeDelta: 0.0121,
       };
       setRegion(newRegion);
     }
@@ -294,6 +302,11 @@ const ClosesPharmacyScreen = ({ navigation }) => {
       // console.log("Seçilen Şehir:", selectedCity);
       setSelectedCityId(selectedCity.id);
       setSelectedCity(selectedCity.label);
+
+      // Şehir değişince ilçeyi sıfırla
+      setSelectedDistrict(null);
+      setSelectedDistrictId("");
+
       fetchDistricts(selectedCity.id);
     }
   };
@@ -316,23 +329,21 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   // Ara
   const handleSearch = async () => {
     try {
-      if (!selectedCityId || !selectedDistrictId) {
-        alert("Lütfen önce şehir ve ilçe seçimi yapınız.");
+      if (!selectedCityId) {
+        Alert.alert("Eksik Seçim", "Lütfen en az bir şehir seçimi yapınız.");
         return;
       }
 
       const cityName = selectedCity;
-      const districtName = selectedDistrict;
+      const districtName = selectedDistrict || ""; // Opsiyonel artık
 
       const response = await API.getPharmaciesByCityAndDistrict(cityName, districtName);
 
       const responseData = response.data.data;
 
       if (responseData.length === 0) {
-        setTimeout(() => {
-          alert("Seçilen bilgilere ait sonuç bulunamamıştır.");
-        }, 100);
-        // console.log("Seçilen bilgilere ait sonuç bulunamamıştır.");
+        setErrorMsg("Seçilen bilgilere ait sonuç bulunamamıştır.");
+        setTimeout(() => setErrorMsg(null), 3000); // 3 saniye sonra mesajı kaldır
         return;
       }
 
@@ -462,8 +473,8 @@ const ClosesPharmacyScreen = ({ navigation }) => {
       setRegion({
         latitude: userLatitude,
         longitude: userLongitude,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
+        latitudeDelta: 0.0122,
+        longitudeDelta: 0.0121,
       });
 
       // Reverse Geocoding to get City/District
@@ -478,15 +489,26 @@ const ClosesPharmacyScreen = ({ navigation }) => {
         if (reverseGeocode && reverseGeocode.length > 0) {
           const address = reverseGeocode[0];
           // console.log("Adres: ", address);
+
           // In Turkey: region usually is City (e.g. Istanbul), subregion is District (e.g. Besiktas)
-          city = address.region || address.city || "İstanbul";
+          // For Tokat example: region might be "Tokat", subregion might be "Turhal"
+          // We trust the reverse geocoding result.
+          city = address.region || address.city || address.subregion;
           district = address.subregion || address.district;
+
+          // Fallback if city name is empty but we have coords, we might try to guess or let API handle it? 
+          // But API needs city. If it's empty, we might defaults to Istanbul OR ask user to pick.
+          if (!city) city = "İstanbul";
         }
       } catch (geoError) {
         console.error("Reverse Geocode Error", geoError);
+        // On error, we rely on coords or default. 
+        // If we want to show 'current location' results, we need city for this specific API.
+        city = "İstanbul";
       }
 
       // Eczaneleri API'den al (Şehir ve İlçe ile)
+      // If we made a successful reverse geocode, use it.
       const response = await API.getPharmacies(userLatitude, userLongitude, city, district);
 
       // if (!response.ok) handled by axios catch usually, or we check response.status
@@ -505,26 +527,33 @@ const ClosesPharmacyScreen = ({ navigation }) => {
         // En yakın eczaneyi bul
         let minDistance = Infinity;
         let nearestPharmacyIndex = null;
-        responseData.data.forEach((pharmacy, index) => {
-          const distance = calculateDistance(
-            userLatitude,
-            userLongitude,
-            pharmacy.latitude,
-            pharmacy.longitude
-          );
-          if (distance < minDistance) {
-            minDistance = distance;
-            nearestPharmacyIndex = index;
-          }
-        });
-
-        // En yakın eczaneyi mavi renkte işaretle
-        setSelectedMarkerIndex(nearestPharmacyIndex);
+        if (responseData.data && responseData.data.length > 0) {
+          responseData.data.forEach((pharmacy, index) => {
+            const distance = calculateDistance(
+              userLatitude,
+              userLongitude,
+              pharmacy.latitude,
+              pharmacy.longitude
+            );
+            if (distance < minDistance) {
+              minDistance = distance;
+              nearestPharmacyIndex = index;
+            }
+          });
+          // En yakın eczaneyi mavi renkte işaretle
+          setSelectedMarkerIndex(nearestPharmacyIndex);
+        }
       } else {
         console.error("API Error:", responseData.errorMessage);
+        Alert.alert("Hata", responseData.errorMessage || "Veri çekilemedi.");
       }
     } catch (error) {
       console.error("Fetch Error:", error);
+      if (error.response && error.response.status === 429) {
+        Alert.alert("Hata", "Çok fazla istek gönderildi. Lütfen bir süre bekleyip tekrar deneyin.");
+      } else {
+        setErrorMsg("Eczane bilgileri alınamadı.");
+      }
     }
   };
 
@@ -568,8 +597,8 @@ const ClosesPharmacyScreen = ({ navigation }) => {
       _map.current.animateToRegion({
         latitude,
         longitude,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
+        latitudeDelta: 0.0122,
+        longitudeDelta: 0.0121,
       });
     } catch (error) {
       console.error("Fetch Error:", error);
@@ -577,8 +606,12 @@ const ClosesPharmacyScreen = ({ navigation }) => {
   };
 
   const handleCallPharmacy = (pharmacyData) => {
-    const url = `tel:${pharmacyData.phone}`;
-    Linking.openURL(url);
+    if (pharmacyData.phone) {
+      const url = `tel:${pharmacyData.phone}`;
+      Linking.openURL(url);
+    } else {
+      Alert.alert("Bilgi", "Bu eczaneye ait telefon numarası bulunmamaktadır.");
+    }
   };
 
   return (
@@ -624,8 +657,8 @@ const ClosesPharmacyScreen = ({ navigation }) => {
                 <Animated.View style={[styles.markerWrap]}>
                   <Animated.Image
                     source={markerIcon}
-                    style={[styles.marker, scaleStyle, { width: 35, height: 35 }]}
-                    resizeMode="cover"
+                    style={[styles.marker, scaleStyle, { width: 40, height: 40 }]}
+                    resizeMode="contain"
                   />
                 </Animated.View>
                 {Platform.OS === "ios" ? (
@@ -646,7 +679,7 @@ const ClosesPharmacyScreen = ({ navigation }) => {
               getUserLocation();
             }}
           >
-            <FontAwesome name="location-arrow" size={24} color="blue" />
+            <MaterialCommunityIcons name="crosshairs-gps" size={30} color="#666" />
           </TouchableOpacity>
         </View>
         <Animated.ScrollView
@@ -776,6 +809,11 @@ const ClosesPharmacyScreen = ({ navigation }) => {
               handleDistrictSelect(selectedDistrict)
             }
           />
+          {errorMsg && (
+            <Text style={[styles.text, { color: 'red', fontSize: 14, textAlign: 'center', marginVertical: 10 }]}>
+              {errorMsg}
+            </Text>
+          )}
           <TouchableOpacity onPress={handleClearFilters}>
             <Text style={[styles.text, { fontSize: 14, fontWeight: "300" }]}>
               Filtreleri Temizle

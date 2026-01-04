@@ -13,6 +13,13 @@ const USE_MOCK_DATA = false; // Set to false when you have an API key
 // ==========================================
 const MOCK_PHARMACIES = [
   {
+    name: "Test Tokat Eczanesi",
+    dist: "Turhal",
+    address: "Cumhuriyet Cad. Tokat",
+    phone: "0356 123 45 67",
+    loc: "40.3167,36.55" // Tokat User Location
+  },
+  {
     name: "Örnek Eczane 1",
     dist: "Merkez",
     address: "Atatürk Cad. No:1 Örnek Mah. İstanbul",
@@ -48,10 +55,14 @@ const config = {
   },
 };
 
+import { db } from "../firebase/config";
+import { doc, getDoc, setDoc, collection } from "firebase/firestore";
+
 // Helper to normalize data structure for the app
 const normalizePharmacyData = (data) => {
   return data.map((item, index) => {
-    const [lat, lon] = item.loc.split(',').map(coord => parseFloat(coord));
+    // CollectAPI returns "loc": "41.0082,28.9784"
+    const [lat, lon] = item.loc ? item.loc.split(',').map(coord => parseFloat(coord)) : [0, 0];
     return {
       id: index + 1, // Generate a temporary ID
       pharmacyName: item.name,
@@ -68,30 +79,60 @@ const normalizePharmacyData = (data) => {
 const getPharmacies = async (latitude, longitude, city, district) => {
   if (USE_MOCK_DATA) {
     console.log("Using Mock Data for Pharmacies");
-    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 500));
-    return { data: { isSuccess: true, result: normalizePharmacyData(MOCK_PHARMACIES) }, status: 200 };
+    return { data: { isSuccess: true, data: normalizePharmacyData(MOCK_PHARMACIES) }, status: 200 };
   }
 
-  // CollectAPI requires city (il) and optional district (ilce)
-  // Default to 'istanbul' if not provided (e.g. detailed reverse geocoding failed)
   const citySlug = city ? slugify(city) : 'istanbul';
-  let url = `${BASE_URL}/dutyPharmacy?il=${citySlug}`;
+  const districtSlug = district ? slugify(district) : '';
 
-  // If district is provided, add it to narrow down results (optional but better)
-  if (district) {
-    url += `&ilce=${slugify(district)}`;
-  }
+  // CACHE KEY: "2026-01-04_istanbul_kadikoy"
+  const today = new Date().toISOString().split('T')[0];
+  const cacheKey = `${today}_${citySlug}_${districtSlug || 'all'}`;
 
-  return axios.get(url, config)
-    .then(response => {
+  try {
+    // 1. Check Firebase Cache
+    const docRef = doc(db, "daily_pharmacies", cacheKey);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      console.log("Data fetched from FIREBASE CACHE! (No API Cost)");
+      const cachedData = docSnap.data().data;
+      // We store normalized data in Firestore to save processing
+      return { data: { isSuccess: true, data: cachedData }, status: 200 };
+    }
+
+    console.log("Cache miss. Fetching from API...");
+
+    // 2. Fetch from API
+    let url = `${BASE_URL}/dutyPharmacy?il=${citySlug}`;
+    if (districtSlug) {
+      url += `&ilce=${districtSlug}`;
+    }
+
+    const response = await axios.get(url, config);
+
+    // 3. Save to Firebase Cache
+    if (response.data && response.data.success && response.data.result) {
       const normalized = normalizePharmacyData(response.data.result);
+
+      await setDoc(docRef, {
+        data: normalized,
+        updatedAt: new Date(),
+        source: 'api'
+      });
+      console.log("Data saved to FIREBASE CACHE.");
+
       return { data: { isSuccess: true, data: normalized }, status: 200 };
-    })
-    .catch(err => {
-      console.error("API Error", err);
-      throw err;
-    });
+    } else {
+      // API returned error or empty
+      return { data: { isSuccess: false, errorMessage: "API'den veri alınamadı" }, status: 200 };
+    }
+
+  } catch (err) {
+    console.error("Cache/API Error", err);
+    throw err;
+  }
 };
 
 const getPharmaciesByCityAndDistrict = async (cityName, districtName) => {
@@ -100,20 +141,56 @@ const getPharmaciesByCityAndDistrict = async (cityName, districtName) => {
     return { data: { isSuccess: true, data: normalizePharmacyData(MOCK_PHARMACIES) }, status: 200 };
   }
 
-  // Convert to English characters roughly for API params if needed, but usually query params are URI encoded
-  // CollectAPI expects lowercase english names usually (e.g. ?il=istanbul&ilce=kadikoy)
-  // We might need a helper to slugify.
   const citySlug = slugify(cityName);
-  // Use the label as the slug reference, or the value
-  // districtName comes from dropdown, which is the 'label' from ClosesPharmacyScreen 'handleDistrictSelect' setting selectedDistrict to label.
-  // So cityName and districtName are the Turkish text. slugify handles it.
-  const districtSlug = slugify(districtName);
+  // districtName might be null/empty, handle gracefully
+  const districtSlug = districtName ? slugify(districtName) : null;
 
-  return axios.get(`${BASE_URL}/dutyPharmacy?il=${citySlug}&ilce=${districtSlug}`, config)
-    .then(response => {
+  // CACHE KEY: "2026-01-04_istanbul_kadikoy" OR "2026-01-04_istanbul_all"
+  const today = new Date().toISOString().split('T')[0];
+  const cacheKey = `${today}_${citySlug}_${districtSlug || 'all'}`;
+
+  try {
+    // 1. Check Firebase Cache
+    const docRef = doc(db, "daily_pharmacies", cacheKey);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      console.log("Data fetched from FIREBASE CACHE! (No API Cost)");
+      const cachedData = docSnap.data().data;
+      return { data: { isSuccess: true, data: cachedData }, status: 200 };
+    }
+
+    console.log("Cache miss. Fetching from API...");
+
+    // 2. Fetch from API
+    let url = `${BASE_URL}/dutyPharmacy?il=${citySlug}`;
+    if (districtSlug) {
+      url += `&ilce=${districtSlug}`;
+    }
+
+    const response = await axios.get(url, config);
+
+    // 3. Save to Firebase Cache
+    if (response.data && response.data.success && response.data.result) {
       const normalized = normalizePharmacyData(response.data.result);
+
+      await setDoc(docRef, {
+        data: normalized,
+        updatedAt: new Date(),
+        source: 'api'
+      });
+      console.log("Data saved to FIREBASE CACHE.");
+
       return { data: { isSuccess: true, data: normalized }, status: 200 }; // mapping result to data for compatibility
-    });
+    } else {
+      // API returned error or empty
+      return { data: { isSuccess: false, errorMessage: "API'den veri alınamadı" }, status: 200 };
+    }
+
+  } catch (err) {
+    console.error("Cache/API Error", err);
+    throw err;
+  }
 };
 
 const getCities = async () => {

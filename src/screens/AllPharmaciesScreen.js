@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Linking,
   Platform,
+  TextInput,
 } from "react-native";
 import * as Location from "expo-location";
 import { useActionSheet } from "@expo/react-native-action-sheet";
@@ -15,6 +16,8 @@ import API from "../api/Enpoints";
 
 const AllPharmaciesScreen = () => {
   const [pharmacies, setPharmacies] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [errorMsg, setErrorMsg] = useState(null);
 
   const optionArray = Platform.select({
     ios: ["Apple Haritalar", "Google Haritalar", "İptal"],
@@ -44,18 +47,21 @@ const AllPharmaciesScreen = () => {
       }
 
       const { latitude, longitude } = location.coords;
-      console.log("Kullanıcı Konum Lat:", latitude);
-      console.log("Kullanıcı Konum Lon:", longitude);
 
-      const response = await API.getAllPharmacies();
-
-      // const responseData = await response.json(); // API wrapper returns axios response with data in .data
-      const responseData = response.data;
-
-      // if (!response.ok) adaptation checking status
-      if (response.status !== 200) {
-        throw new Error("API Error: " + response.statusText);
+      // Reverse Geocode Logic
+      let city = "İstanbul";
+      try {
+        const reverseGeocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (reverseGeocode && reverseGeocode.length > 0) {
+          city = reverseGeocode[0].region || reverseGeocode[0].city || reverseGeocode[0].subregion || "İstanbul";
+        }
+      } catch (err) {
+        console.warn("Reverse geocode failed", err);
       }
+
+      // Use Cache-Enabled API
+      const response = await API.getPharmacies(latitude, longitude, city, null);
+      const responseData = response.data;
 
       if (responseData.isSuccess) {
         const pharmaciesWithDistance = responseData.data.map((pharmacy) => ({
@@ -79,8 +85,7 @@ const AllPharmaciesScreen = () => {
   };
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    // Haversine formülü kullanarak mesafeyi hesapla
-    const R = 6371; // Dünya yarıçapı kilometre cinsinden
+    const R = 6371;
     const dLat = (lat2 - lat1) * (Math.PI / 180);
     const dLon = (lon2 - lon1) * (Math.PI / 180);
     const a =
@@ -90,68 +95,52 @@ const AllPharmaciesScreen = () => {
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = R * c; // Mesafe kilometre cinsinden
-    return distance;
+    return R * c;
   };
 
   const handleCallPharmacy = (phoneNumber) => {
-    const url = `tel:${phoneNumber}`;
-    Linking.openURL(url);
+    if (phoneNumber) {
+      Linking.openURL(`tel:${phoneNumber}`);
+    } else {
+      console.warn("Telefon numarası bulunamadı");
+    }
   };
 
   const openInAppleMaps = (latitude, longitude) => {
     const latLng = `${latitude},${longitude}`;
-    url = `http://maps.apple.com/?q=${latLng}`;
-
-    Linking.openURL(url).catch((err) =>
-      console.error("Haritaları açarken hata oluştu:", err)
-    );
+    Linking.openURL(`http://maps.apple.com/?q=${latLng}`).catch(err => console.error("Map Error", err));
   };
 
   const openInGoogleMaps = (latitude, longitude) => {
     const latLng = `${latitude},${longitude}`;
-    let url = `http://maps.google.com/?q=${latLng}`;
+    Linking.openURL(`http://maps.google.com/?q=${latLng}`).catch(err => console.error("Map Error", err));
+  };
 
-    Linking.openURL(url).catch((err) =>
-      console.error("Haritaları açarken hata oluştu:", err)
+  const handleDirection = async (selectedPharmacy) => {
+    const { latitude, longitude } = selectedPharmacy;
+    const destructiveButtonIndex = 0;
+    const cancelButtonIndex = 2;
+
+    showActionSheetWithOptions(
+      {
+        options: optionArray,
+        cancelButtonIndex,
+        destructiveButtonIndex,
+      },
+      (selectedIndex) => {
+        const selectedOption = optionArray[selectedIndex];
+        if (selectedOption === "Apple Haritalar") openInAppleMaps(latitude, longitude);
+        else if (selectedOption === "Google Haritalar") openInGoogleMaps(latitude, longitude);
+      }
     );
   };
 
-
-
-  const handleDirection = async (selectedPharmacy) => {
-    try {
-      const { latitude, longitude } = selectedPharmacy;
-      const options = optionArray;
-      const destructiveButtonIndex = 0;
-      const cancelButtonIndex = 2;
-
-      showActionSheetWithOptions(
-        {
-          options,
-          cancelButtonIndex,
-          destructiveButtonIndex,
-        },
-        (selectedIndex) => {
-          const selectedOption = optionArray[selectedIndex];
-          let selectedMapApp = "";
-
-          if (selectedOption === "Apple Haritalar" && Platform.OS === "ios") {
-            selectedMapApp = "apple";
-          } else if (selectedOption === "Google Haritalar") {
-            selectedMapApp = "google";
-          }
-          if (selectedMapApp === "apple") {
-            openInAppleMaps(latitude, longitude);
-          } else if (selectedMapApp === "google") {
-            openInGoogleMaps(latitude, longitude);
-          }
-        }
-      );
-    } catch (error) {
-      console.error("Hata:", error);
-    }
-  };
+  const filteredPharmacies = pharmacies.filter((pharmacy) => {
+    const query = searchQuery.toLowerCase();
+    const name = pharmacy.pharmacyName ? pharmacy.pharmacyName.toLowerCase() : "";
+    const address = pharmacy.address ? pharmacy.address.toLowerCase() : "";
+    return name.includes(query) || address.includes(query);
+  });
 
   const renderPharmacyItem = ({ item }) => (
     <View
@@ -170,13 +159,7 @@ const AllPharmaciesScreen = () => {
         <Text>{item.address}</Text>
         <Text>{item.distance.toFixed(2)} km</Text>
       </View>
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-around",
-          width: 90,
-        }}
-      >
+      <View style={{ flexDirection: "row", justifyContent: "space-around", width: 90 }}>
         <TouchableOpacity
           onPress={() => handleDirection(item)}
           style={{
@@ -211,18 +194,27 @@ const AllPharmaciesScreen = () => {
 
   return (
     <View style={styles.container}>
+      <View style={{ marginVertical: 10, padding: 10, backgroundColor: '#f0f0f0', borderRadius: 8 }}>
+        <TextInput
+          placeholder="Eczane adı veya adres ara..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          style={{ height: 40 }}
+        />
+      </View>
+
       {pharmacies.length > 0 ? (
         <FlatList
-          data={pharmacies}
+          data={filteredPharmacies}
           renderItem={renderPharmacyItem}
           keyExtractor={(item) => item.id.toString()}
+          ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 20 }}>Sonuç bulunamadı.</Text>}
         />
       ) : (
         <View style={styles.loading}>
-          <Text>Eczaneler yükleniyor...</Text>
+          {errorMsg ? <Text style={{ color: 'red' }}>{errorMsg}</Text> : <Text>Eczaneler yükleniyor...</Text>}
         </View>
       )}
-      {/* Footer or other content can go here */}
     </View>
   );
 };
@@ -234,32 +226,8 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 15,
   },
-  pharmacies: {
-    marginTop: 15,
-    with: 671,
-    height: 60,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "red",
-    justifyContent: "space-around",
-    borderRadius: 10,
-    padding: 5,
-  },
-  allPharmacies: {
-    backgroundColor: "transparent",
-    borderRadius: 10,
-    padding: 5,
-    width: 150,
-    alignItems: "center",
-  },
-  nightPharmacies: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    padding: 5,
-    width: 150,
-    alignItems: "center",
-  },
   loading: {
     alignItems: "center",
+    marginTop: 50
   }
 });
